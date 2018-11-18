@@ -40,14 +40,6 @@ train_dataset = tf.contrib.data.make_csv_dataset(
 
 features, labels = next(iter(train_dataset))
 
-plt.scatter(features['petal_length'],
-            features['sepal_length'],
-            c=labels,
-            cmap='viridis')
-
-plt.xlabel("Petal length")
-plt.ylabel("Sepal length");
-
 def pack_features_vector(features, labels):
   """Pack the features into a single array."""
   features = tf.stack(list(features.values()), axis=1)
