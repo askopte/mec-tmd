@@ -47,8 +47,6 @@ class Parameters:
             self.nw_width + self.job_width * 3\
             1  # for extra info, 1) time since last new job 2) LTE network infomation
 
-        self.network_output_dim = self.num_nw + 1  # + 1 for void action
-
         self.delay_penalty = -1       # penalty for delaying things in the current work screen
         self.hold_penalty = -1        # penalty for holding things in the new work screen
         self.dismiss_penalty = -1     # penalty for missing a job because the queue is full

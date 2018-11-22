@@ -1,10 +1,26 @@
-import parameters
 import os
 import time
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import numpy as np
 
+import parameters
 import environment
+import tf_network
+
+def discount(x, gamma):
+    """
+    Given vector x, computes a vector y such that
+    y[i] = x[i] + gamma * x[i+1] + gamma^2 x[i+2] + ...
+    """
+    out = np.zeros(len(x))
+    out[-1] = x[-1]
+    for i in reversed(xrange(len(x)-1)):
+        out[i] = x[i] + gamma*out[i+1]
+    assert x.ndim >= 1
+    # More efficient version:
+    # scipy.signal.lfilter([1],[1,-gamma],x[::-1], axis=0)[::-1]
+    return out
 
 def get_traj(env, episode_max_length):
 
@@ -17,7 +33,8 @@ def get_traj(env, episode_max_length):
     ob = env.observe()
 
     for _ in xrange(episode_max_length):
-        act = 
+        act_prob = 
+        a = tf.arg_max(act_prob,axis = 1)
         obs.append(ob)
         acts.append(act)
 
@@ -50,11 +67,50 @@ def concatenate_all_ob(trajs, pa):
     
     return all_ob
 
+def concatenate_all_ob_across_examples(all_ob, pa):
+    num_ex = len(all_ob)
+    total_samp = 0
+    for i in xrange(num_ex):
+        total_samp += all_ob[i].shape[0]
+
+    all_ob_contact = np.zeros(
+        (total_samp, 1, pa.network_input_height, pa.network_input_width))
+
+    total_samp = 0
+
+    for i in xrange(num_ex):
+        prev_samp = total_samp
+        total_samp += all_ob[i].shape[0]
+        all_ob_contact[prev_samp : total_samp, :, :, :] = all_ob[i]
+
+    return all_ob_contact
+
+def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, slow_down_lr_curve,
+                  ref_discount_rews, ref_slow_down):
+    num_colors = len(ref_discount_rews) + 2
+    cm = plt.get_cmap('gist_rainbow')
+
+    fig = plt.figure(figsize=(12, 5))
+
+    ax = fig.add_subplot(111)
+    ax.set_color_cycle([cm(1. * i / num_colors) for i in range(num_colors)])
+
+    ax.plot(mean_rew_lr_curve, linewidth=2, label='PG mean')
+    ax.plot(max_rew_lr_curve, linewidth=2, label='PG max')
+
+    plt.legend(loc=4)
+    plt.xlabel("Iteration", fontsize=20)
+    plt.ylabel("Discounted Total Reward", fontsize=20)
+
+    plt.savefig(output_file_prefix + "_lr_curve" + ".pdf")
+
 def main():
 
     pa = parameters.Parameters()
 
     env = environment.Env(pa, end = end)
+
+    tf_learner = 
 
     timer_start = time.time()
 
@@ -78,7 +134,53 @@ def main():
 
             all_ob.append(concatenate_all_ob(trajs, pa))
 
-            rets = []
+            rets = [discount(traj["reward"], pa.discount) for traj in trajs]
+            maxlen = max(len(ret) for ret in rets)
+            padded_rets = [np.concatenate([ret, np.zeros(maxlen - len(ret))]) for ret in rets]
+
+            baseline = np.mean(padded_rets, axis=0)
+
+            advs = [ret - baseline[:len(ret)] for ret in rets]
+            all_action.append(np.concatenate([traj["action"] for traj in trajs]))
+            all_adv.append(np.concatenate(advs))
+
+            all_eprews.append(np.array([discount(traj["reward"], pa.discount)[0] for traj in trajs]))  # episode total rewards
+            all_eplens.append(np.array([len(traj["reward"]) for traj in trajs]))  # episode lengths
+        
+        all_ob = concatenate_all_ob_across_examples(all_ob, pa)
+        all_action = np.concatenate(all_action)
+        all_adv = np.concatenate(all_adv)
+
+        # Do policy gradient update step
+        loss =
+        eprews = np.concatenate(all_eprews)  # episode total rewards
+        eplens = np.concatenate(all_eplens)  # episode lengths
+
+        timer_end = time.time()
+
+        print "-----------------"
+        print "Iteration: \t %i" % iteration
+        print "NumTrajs: \t %i" % len(eprews)
+        print "NumTimesteps: \t %i" % np.sum(eplens)
+        print "Loss:     \t %s" % loss
+        print "MaxRew: \t %s" % np.average([np.max(rew) for rew in all_eprews])
+        print "MeanRew: \t %s +- %s" % (eprews.mean(), eprews.std())
+        print "MeanLen: \t %s +- %s" % (eplens.mean(), eplens.std())
+        print "Elapsed time\t %s" % (timer_end - timer_start), "seconds"
+        print "-----------------"
+
+        timer_start = time.time()
+
+        max_rew_lr_curve.append(np.average([np.max(rew) for rew in all_eprews]))
+        mean_rew_lr_curve.append(eprews.mean())
+
+        if iteration % pa.output_freq == 0:
+            param_file = open(pa.output_filename + '_' + str(iteration) + '.pkl', 'wb')
+            
+            param_file.close()
+
+            plot_lr_curve(pa.output_filename,
+                          max_rew_lr_curve, mean_rew_lr_curve)
 
 
 if __name__ == '__main__':
