@@ -22,7 +22,7 @@ def discount(x, gamma):
     # scipy.signal.lfilter([1],[1,-gamma],x[::-1], axis=0)[::-1]
     return out
 
-def get_traj(env, episode_max_length):
+def get_traj(agent, env, episode_max_length):
 
     env.reset()
     obs = []
@@ -33,8 +33,9 @@ def get_traj(env, episode_max_length):
     ob = env.observe()
 
     for _ in xrange(episode_max_length):
-        act_prob = 
-        a = tf.arg_max(act_prob,axis = 1)
+
+        a = 
+
         obs.append(ob)
         acts.append(act)
 
@@ -110,7 +111,7 @@ def main():
 
     env = environment.Env(pa, end = end)
 
-    tf_learner = 
+    tf_learner = tf_network.TFLearner(pa)
 
     timer_start = time.time()
 
@@ -127,7 +128,7 @@ def main():
             trajs = []
 
             for i in xrange(pa.num_seq_per_batch):
-                trajs = get_traj(env, pa.episode_max_length)
+                trajs = get_traj(tf_learner, env, pa.episode_max_length)
                 trajs.append(traj)
             
             env.seq_no = (env.seq_no + 1) % env.pa.num_ex
@@ -152,7 +153,7 @@ def main():
         all_adv = np.concatenate(all_adv)
 
         # Do policy gradient update step
-        loss =
+        loss = 
         eprews = np.concatenate(all_eprews)  # episode total rewards
         eplens = np.concatenate(all_eplens)  # episode lengths
 
