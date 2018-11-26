@@ -12,6 +12,9 @@ class TFLearner:
 
         self.update_counter = 0
 
+        states = np.zeros()
+        actions = np.zeros()
+
         print 'network_input_height=', pa.network_input_height
         print 'network_input_width=', pa.network_input_width
 
@@ -29,11 +32,17 @@ class TFLearner:
         self.rms_rho = pa.rms_rho
         self.rms_eps = pa.rms_eps
 
+        params = self.model.get_weights()
+
         print ' params=', params, ' count=', self.model.count_params()
 
         # ===================================
         # training function part
         # ===================================
+
+        prob_act = self.model.predict()
+
+        
 
         
 
