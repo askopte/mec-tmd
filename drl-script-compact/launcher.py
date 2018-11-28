@@ -34,7 +34,7 @@ def get_traj(agent, env, episode_max_length):
 
     for _ in xrange(episode_max_length):
 
-        a = 
+        a = agent.choose_action(ob)
 
         obs.append(ob)
         acts.append(act)
@@ -111,7 +111,7 @@ def main():
 
     env = environment.Env(pa, end = end)
 
-    tf_learner = tf_network.TFLearner(pa)
+    tf_learner = tf_network.TFLearner(pa, pa.network_input_height, pa.network_input_width, 32)
 
     timer_start = time.time()
 
@@ -153,7 +153,7 @@ def main():
         all_adv = np.concatenate(all_adv)
 
         # Do policy gradient update step
-        loss = 
+        loss = tf_learner.learn(all_ob,all_action,all_adv)
         eprews = np.concatenate(all_eprews)  # episode total rewards
         eplens = np.concatenate(all_eplens)  # episode lengths
 
