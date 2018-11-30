@@ -1,5 +1,5 @@
 import tensorflow as tf
-import numpy as numpy
+import numpy as np
 
 from functools import reduce
 from operator import mul
@@ -31,8 +31,9 @@ class TFLearner:
             tf.summary.FileWriter(pa.output_filename, self.sess.graph)
         
         self.sess.run(tf.global_variables_initializer())
+
     
-    def build_network():
+    def build_network(self):
         with tf.name_scope('inputs'):
             self.states = tf.placeholder(tf.int16,[None, self.num_features], name="observe")
             self.actions = tf.placeholder(tf.int16,[None, ], name="actions")
@@ -46,8 +47,8 @@ class TFLearner:
             bias_initializer=tf.constant_initializer(0.1))
         
         act = tf.layers.dense(
-            inputs = self.layer,
-            units = out_dim,
+            inputs = layer,
+            units = self.output_height,
             activation = tf.nn.relu,
             kernel_initializer=tf.random_normal_initializer(mean=0, stddev=0.3),
             bias_initializer=tf.constant_initializer(0.1))

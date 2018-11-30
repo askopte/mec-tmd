@@ -1,4 +1,5 @@
 import numpy as np
+import job_distribution
 import math
 
 class Parameters:
@@ -42,9 +43,9 @@ class Parameters:
         self.nw_width = int(math.ceil(self.num_nw / float(self.time_horizon)))
         self.job_width = int(math.ceil(self.job_num_cap / float(self.time_horizon)))
         self.network_input_height = self.time_horizon
-        self.network_input_width = 
-            self.res_slot * self.num_res + 
-            self.nw_width + self.job_width * 3 +
+        self.network_input_width = \
+            self.res_slot * self.num_res + \
+            self.nw_width + self.job_width * 3 + \
             1  # for extra info, 1) time since last new job 2) LTE network infomation
 
         self.delay_penalty = -1       # penalty for delaying things in the current work screen
@@ -63,6 +64,6 @@ class Parameters:
         self.job_width = int(math.ceil(self.job_num_cap / float(self.time_horizon)))
         self.network_input_height = self.time_horizon
         self.network_input_width = \
-            self.res_slot * self.num_res + \   
-            self.nw_width + self.job_width * 3\
+            self.res_slot * self.num_res + \
+            self.nw_width + self.job_width * 3 + \
             1  # for extra info, 1) time since last new job 2) LTE network infomation

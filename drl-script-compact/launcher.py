@@ -15,7 +15,7 @@ def discount(x, gamma):
     """
     out = np.zeros(len(x))
     out[-1] = x[-1]
-    for i in reversed(xrange(len(x)-1)):
+    for i in reversed(range(len(x)-1)):
         out[i] = x[i] + gamma*out[i+1]
     assert x.ndim >= 1
     # More efficient version:
@@ -32,9 +32,9 @@ def get_traj(agent, env, episode_max_length):
 
     ob = env.observe()
 
-    for _ in xrange(episode_max_length):
+    for _ in range(episode_max_length):
 
-        a = agent.choose_action(ob)
+        act = agent.choose_action(ob)
 
         obs.append(ob)
         acts.append(act)
@@ -54,15 +54,15 @@ def get_traj(agent, env, episode_max_length):
 def concatenate_all_ob(trajs, pa):
 
     timesteps_total = 0
-    for i in xrange(len(trajs)):
+    for i in range(len(trajs)):
         timesteps_total += len(trajs[i]['reward'])
     
     all_ob = np.zeros(
         (timesteps_total, 1, pa.network_input_height, pa.network_input_width))
 
     timesteps = 0
-    ffor i in xrange(len(trajs)):
-        for j in xrange(len(trajs[i]['reward'])):
+    for i in range(len(trajs)):
+        for j in range(len(trajs[i]['reward'])):
             all_ob[timesteps, 0, :, :] = trajs[i]['ob'][j]
             timesteps += 1
     
@@ -71,7 +71,7 @@ def concatenate_all_ob(trajs, pa):
 def concatenate_all_ob_across_examples(all_ob, pa):
     num_ex = len(all_ob)
     total_samp = 0
-    for i in xrange(num_ex):
+    for i in range(num_ex):
         total_samp += all_ob[i].shape[0]
 
     all_ob_contact = np.zeros(
@@ -79,16 +79,15 @@ def concatenate_all_ob_across_examples(all_ob, pa):
 
     total_samp = 0
 
-    for i in xrange(num_ex):
+    for i in range(num_ex):
         prev_samp = total_samp
         total_samp += all_ob[i].shape[0]
         all_ob_contact[prev_samp : total_samp, :, :, :] = all_ob[i]
 
     return all_ob_contact
 
-def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, slow_down_lr_curve,
-                  ref_discount_rews, ref_slow_down):
-    num_colors = len(ref_discount_rews) + 2
+def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve):
+    num_colors = 2
     cm = plt.get_cmap('gist_rainbow')
 
     fig = plt.figure(figsize=(12, 5))
@@ -109,26 +108,29 @@ def main():
 
     pa = parameters.Parameters()
 
-    env = environment.Env(pa, end = end)
+    env = environment.Env(pa, end = 'end')
 
     tf_learner = tf_network.TFLearner(pa, pa.network_input_height, pa.network_input_width, 32)
 
     timer_start = time.time()
 
-    for iteration in xrange(pa.num_epochs):
+    max_rew_lr_curve = []
+    mean_rew_lr_curve = []
 
-        all_oball_ob = []
+    for iteration in range(pa.num_epochs):
+
+        all_ob = []
         all_action = []
         all_adv = []
         all_eprews = []
         all_eplens = []
 
-        for ex in xrange(pa.num_ex):
+        for ex in range(pa.num_ex):
 
             trajs = []
 
-            for i in xrange(pa.num_seq_per_batch):
-                trajs = get_traj(tf_learner, env, pa.episode_max_length)
+            for i in range(pa.num_seq_per_batch):
+                traj = get_traj(tf_learner, env, pa.episode_max_length)
                 trajs.append(traj)
             
             env.seq_no = (env.seq_no + 1) % env.pa.num_ex
@@ -159,16 +161,16 @@ def main():
 
         timer_end = time.time()
 
-        print "-----------------"
-        print "Iteration: \t %i" % iteration
-        print "NumTrajs: \t %i" % len(eprews)
-        print "NumTimesteps: \t %i" % np.sum(eplens)
-        print "Loss:     \t %s" % loss
-        print "MaxRew: \t %s" % np.average([np.max(rew) for rew in all_eprews])
-        print "MeanRew: \t %s +- %s" % (eprews.mean(), eprews.std())
-        print "MeanLen: \t %s +- %s" % (eplens.mean(), eplens.std())
-        print "Elapsed time\t %s" % (timer_end - timer_start), "seconds"
-        print "-----------------"
+        print ("-----------------")
+        print ("Iteration: \t %i" % iteration)
+        print ("NumTrajs: \t %i" % len(eprews))
+        print ("NumTimesteps: \t %i" % np.sum(eplens))
+        print ("Loss:     \t %s" % loss)
+        print ("MaxRew: \t %s" % np.average([np.max(rew) for rew in all_eprews]))
+        print ("MeanRew: \t %s +- %s" % (eprews.mean(), eprews.std()))
+        print ("MeanLen: \t %s +- %s" % (eplens.mean(), eplens.std()))
+        print ("Elapsed time\t %s" % (timer_end - timer_start), "seconds")
+        print ("-----------------")
 
         timer_start = time.time()
 

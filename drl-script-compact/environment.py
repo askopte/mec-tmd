@@ -42,22 +42,20 @@ class Env:
 
     def generate_sequence_work(self, simu_len):
 
-    nw_len_seq = np.zeros(simu_len * 2, dtype=int)
+        nw_len_seq = np.zeros(simu_len * 2, dtype=int)
 
-    for i in range(simu_len):
-
-        nw_len_seq[2 * i] = self.nw_dist()
-
+        for i in range(simu_len):
+            nw_len_seq[2 * i] = self.nw_dist()
+            
         if np.random.rand() < self.pa.new_job_rate - 1:  # a new job comes
-
             nw_len_seq[2 * i + 1] = self.nw_dist()
 
     return nw_len_seq
 
     def get_new_job_from_seq(self, seq_no, seq_idx):
-    new_job = Job(job_len=self.nw_len_seqs[seq_no, seq_idx],
-                  job_id=len(self.job_record.record),
-                  enter_time=self.curr_time)
+        new_job = Job (job_len=self.nw_len_seqs[seq_no, seq_idx],
+                       job_id=len(self.job_record.record),
+                       enter_time=self.curr_time)
     return new_job
 
     def observe(self):

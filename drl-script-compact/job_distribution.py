@@ -26,7 +26,7 @@ class Dist:
 
         return nw_len
 
-def generate_sequence_work(pa, seed=42):
+def generate_sequence_work(self, pa, seed=42):
 
     np.random.seed(seed)
 
@@ -38,7 +38,7 @@ def generate_sequence_work(pa, seed=42):
 
         if np.random.rand() < pa.new_job_rate:  # a new job comes
 
-            nw_len_seq[i] = job_dist()
+            nw_len_seq[i] = self.job_dist()
 
     nw_len_seq = np.reshape(nw_len_seq,
                             [pa.num_ex, pa.simu_len])
