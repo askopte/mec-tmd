@@ -1,4 +1,5 @@
 {
     "python.pythonPath": "C:\\Users\\askop\\Anaconda2\\envs\\python36\\python.exe",
-    "python.linting.pylintEnabled": false
+    "python.linting.pylintEnabled": false,
+    "python.linting.enabled": true
 }
