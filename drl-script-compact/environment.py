@@ -225,6 +225,7 @@ class JobRecord:
 
 class Machine:
     def __init__(self, pa):
+        self.pa = pa
         self.num_res = pa.num_res
         self.time_horizon = pa.time_horizon
         self.res_slot = pa.res_slot
@@ -239,6 +240,11 @@ class Machine:
     def allocate_job(self, job, qos, curr_time):
 
         allocated = False
+        
+        res = self.pa.qos_res_list(qos)
+
+        for t in range(1, self.time_horizon - job.len):
+            avbl_res = 
         
     def reallocate_job(self, index, qos, curr_time):
 

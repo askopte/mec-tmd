@@ -19,8 +19,8 @@ class Parameters:
         self.num_nw = 200                # maximum allowed number of work in the queue
 
         self.time_horizon = 200         # number of time steps in the graph
-        self.max_job_len = 150          # maximum duration of new jobs
-        self.res_slot = 16             # maximum number of available resource slots
+        self.max_job_len = 100          # maximum duration of new jobs
+        self.res_slot = 10             # maximum number of available resource slots
 
         self.ambr_len = 10             # LTE ambr prediction size
 
@@ -34,6 +34,8 @@ class Parameters:
 
          # distribution for new job arrival
         self.dist = job_distribution.Dist(self.max_job_len)
+
+        self.qos_res_list = (1, 3, 5, 8)
 
         # graphical representation
         assert self.num_nw % self.time_horizon == 0  # such that it can be converted into an image
