@@ -110,7 +110,7 @@ def main():
 
     env = environment.Env(pa, end = 'end')
 
-    tf_learner = tf_network.TFLearner(pa, pa.network_input_height, pa.network_input_width, 32)
+    tf_learner = tf_network.TFLearner(pa, pa.network_input_height, pa.network_input_width, 33)
 
     timer_start = time.time()
 
