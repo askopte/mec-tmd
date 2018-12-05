@@ -36,6 +36,8 @@ class Parameters:
         self.dist = job_distribution.Dist(self.max_job_len)
 
         self.qos_res_list = (1, 3, 5, 8)
+        self.mec_overall_latency = 5
+        self.lte_latency = 3
 
         # graphical representation
         assert self.num_nw % self.time_horizon == 0  # such that it can be converted into an image
