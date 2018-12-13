@@ -36,13 +36,15 @@ class Parameters:
         self.dist = job_distribution.Dist(self.max_job_len)
 
         self.qos_res_list = (1, 3, 5, 8)
+        self.qos_rew_list = (-8, -5, -3, -1)
+        self.qos_rew_delta = (0, -1, -1, -2)
         self.mec_overall_latency = 5
         self.lte_latency = 3
 
         # graphical representation
         assert self.num_nw % self.time_horizon == 0  # such that it can be converted into an image
         assert self.job_num_cap % self.time_horizon == 0
-        assert self.ambr_len < self.time_horizon
+        # assert self.ambr_len < self.time_horizon
 
         self.nw_width = int(math.ceil(self.num_nw / float(self.time_horizon)))
         self.job_width = int(math.ceil(self.job_num_cap / float(self.time_horizon)))

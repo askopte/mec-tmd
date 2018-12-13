@@ -26,9 +26,7 @@ class Dist:
 
         return nw_len
 
-def generate_sequence_work(self, pa, seed=42):
-
-    np.random.seed(seed)
+def generate_sequence_work(self, pa):
 
     simu_len = pa.simu_len * pa.num_ex
 

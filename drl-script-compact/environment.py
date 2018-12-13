@@ -27,6 +27,8 @@ class Env:
         
         else:
             self.nw_len_seqs = nw_len_seqs
+        
+        self.nw_ambr_seqs = 
 
         self.seq_no = 0  # which example sequence
         self.seq_idx = 0  # index in that sequence
@@ -37,6 +39,14 @@ class Env:
         self.job_backlog = JobBacklog(pa)
         self.job_record = JobRecord()
         self.extra_info = ExtraInfo(pa)
+
+    def generate_sequence_ue_ambr(self, num_ex, simu_len):
+
+        nw_ambr_seq = np.zeros([num_ex, simu_len], dtype = int)
+        nw_ambr_seq[1,:] = 1
+        for i in range(1， num_ex):
+            
+
 
     def generate_sequence_work(self, num_ex, simu_len, job_rate):
 
@@ -96,12 +106,16 @@ class Env:
 
         reward = 0
         for j in self.machine.running_job:
-            reward += self.pa.delay_penalty / float(j.len)
+            reward += self.pa.qos_rew_list(j.res) / float(j.len)
+            if qos 
+
+        for j in self.pending_job:
+            reward += self.pa.hold_penalty / float(j.len)
 
         for j in self.job_slot.slot:
             if j is not None:
                 reward += self.pa.hold_penalty / float(j.len)
-
+        
         return reward
 
     def step(self, a, repeat=False):
