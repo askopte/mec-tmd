@@ -277,6 +277,7 @@ class Machine:
                 new_avbl_res[i] = etc.bin_to_dec(self.avbl_slot[t+i+all_latency,0]) - res
             
             if np.all(new_avbl_res[:] >= 0) and np.all(backhaul_res[:] >= 0):
+
                 allocated = True
                 for i in range(0,all_latency):
                     self.avbl_slot[t+i,1] = etc.dec_to_bin(backhaul_res[i],self.pa.res_slot)
@@ -292,6 +293,17 @@ class Machine:
                 self.pending_job.append(job)
 
                 # update graphical representation(incompleted)
+
+                assert job.start_time != -1
+                assert job.finish_time != -1
+                assert job.finish_time > job.start_time
+                canvas_start_time = job.start_time - curr_time
+                canvas_end_time = job.finish_time - curr_time
+
+                for res in range(self.num_res):
+                    for i in range(canvas_start_time, canvas_end_time):
+                        avbl_slot = np.where(self.canvas[res, i, :] == 0)[0]
+                        self.canvas[res, i, :] = etc.dec_to_bin(new_avbl_res[i],self.pa.res_slot)
 
                 break
         return allocated
@@ -365,5 +377,4 @@ class Machine:
 
         self.canvas[:, :-1, :] = self.canvas[:, 1:, :]
         self.canvas[:, -1, :] = 0
-    
 
