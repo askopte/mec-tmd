@@ -51,7 +51,7 @@ class Parameters:
         self.network_input_height = self.time_horizon
         self.network_input_width = \
             self.res_slot * self.num_res + \
-            self.nw_width + self.job_width * 3 + \
+            self.nw_width + self.job_width * 2 + \
             1  # for extra info, 1) time since last new job 2) LTE network infomation
 
         self.delay_penalty = -1       # penalty for delaying things in the current work screen
