@@ -28,7 +28,7 @@ class Env:
         else:
             self.nw_len_seqs = nw_len_seqs
         
-        self.nw_ambr_seqs = 
+        self.nw_ambr_seqs = self.generate_sequence_ue_ambr(self.pa.num_ex,self.pa.simu_len)
 
         self.seq_no = 0  # which example sequence
         self.seq_idx = 0  # index in that sequence
@@ -43,11 +43,18 @@ class Env:
     def generate_sequence_ue_ambr(self, num_ex, simu_len):
 
         nw_ambr_seq = np.zeros([num_ex, simu_len], dtype = int)
-        nw_ambr_seq[:,1] = 2 
-        for i in range(1， num_ex):
-            for j in range(simu_len / 5):
+        nw_ambr_seq[:,0:9] = 2 
+        for i in range(num_ex):
+            for j in range(simu_len / 10 - 1):
                 ran = np.random.rand()
-                
+                if ran < 0.25:
+                    if nw_ambr_seq[i, 10*j + 9] <= 2:
+                        nw_ambr_seq[i,10*j + 10:10*j + 19] =  nw_ambr_seq[i, 10*j-1] + 1
+                if ran > 0.75:
+                    if nw_ambr_seq[i, 10*j + 9] >= 1:
+                        nw_ambr_seq[i,10*j + 10:10*j + 19] =  nw_ambr_seq[i, 10*j-1] - 1
+        
+        return nw_ambr_seq
 
 
     def generate_sequence_work(self, num_ex, simu_len, job_rate):
@@ -109,7 +116,9 @@ class Env:
         reward = 0
         for j in self.machine.running_job:
             reward += self.pa.qos_rew_list(j.res) / float(j.len)
-            if qos 
+            if qos > self.nw_ambr_seqs[self.seq_no, self.curr_time]:
+                for i in range(self.nw_ambr_seqs[self.seq_no, self.curr_time], qos):
+                    reward += self.pa.qos_rew_delta[i]
 
         for j in self.pending_job:
             reward += self.pa.hold_penalty / float(j.len)
