@@ -43,9 +43,11 @@ class Env:
     def generate_sequence_ue_ambr(self, num_ex, simu_len):
 
         nw_ambr_seq = np.zeros([num_ex, simu_len], dtype = int)
-        nw_ambr_seq[1,:] = 1
+        nw_ambr_seq[:,1] = 2 
         for i in range(1， num_ex):
-            
+            for j in range(simu_len / 5):
+                ran = np.random.rand()
+                
 
 
     def generate_sequence_work(self, num_ex, simu_len, job_rate):
