@@ -88,8 +88,8 @@ class Env:
         for i in range(self.pa.nw_width): # nw_width
 
             for j in range(self.pa.time_horizon):
-                if self.job_slot[i * self.pa.time_horizon + j] is not None:
-                    image_repr[j, ir_pt : ir_pt + 1] = self.job_slot[i * self.pa.time_horizon + j].len
+                if self.job_slot.slot[i * self.pa.time_horizon + j] is not None:
+                    image_repr[j, ir_pt : ir_pt + 1] = self.job_slot.slot[i * self.pa.time_horizon + j].len
                 
             ir_pt += 1
                 
