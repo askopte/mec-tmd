@@ -97,18 +97,21 @@ class Env:
         for i in range(self.pa.job_width): # job_width
 
             for j in range(self.pa.time_horizon):
-                if self.machine.running_job[i * self.pa.time_horizon + j] is not None:
+                #if self.machine.running_job[i * self.pa.time_horizon + j] is not None:
+                if len(self.machine.running_job) > i * self.pa.time_horizon + j:
                     image_repr[j, ir_pt : ir_pt + 1] = self.machine.running_job[i * self.pa.time_horizon + j].remain_len
                     image_repr[j, ir_pt : ir_pt + 1] = self.machine.running_job[i * self.pa.time_horizon + j].res
                 
             ir_pt += 2
             
         for i in range(self.pa.ambr_len):
-            image_repr[i, ir_pt:ir_pt + 1] = self.nw_ambr_seqs[self.curr_time + i]
+            image_repr[i, ir_pt:ir_pt + 1] = self.nw_ambr_seqs[self.seq_no, self.curr_time + i]
+        
+        ir_pt += 1
 
         assert ir_pt == image_repr.shape[1]
 
-        return image_repr
+        return image_repr.ravel()
     
     def get_reward(self):
 
@@ -182,7 +185,7 @@ class Env:
 
                 if self.seq_idx < self.pa.simu_len:  # otherwise, end of new job sequence, i.e. no new jobs
                     job_num = 0
-                    for i in range(np.ceil(self.pa.new_job_rate)):
+                    for i in range(int(np.ceil(self.pa.new_job_rate))):
                         new_job = self.get_new_job_from_seq(self.seq_no, self.seq_idx, job_num)
                         if new_job.len > 0:  # a new job comes
                             for j in range(self.pa.num_nw):

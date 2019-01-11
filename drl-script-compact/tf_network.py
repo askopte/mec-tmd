@@ -28,16 +28,16 @@ class TFLearner:
         self.saver = tf.train.Saver()
 
         if output_graph:
-            tf.summary.FileWriter(pa.output_filename, self.sess.graph)
+            tf.summary.FileWriter(pa.output_filename+"_graph.tmp", self.sess.graph)
         
         self.sess.run(tf.global_variables_initializer())
 
     
     def build_network(self):
         with tf.name_scope('inputs'):
-            self.states = tf.placeholder(tf.float16,[None, self.num_features], name="observe")
-            self.actions = tf.placeholder(tf.float16,[None, ], name="actions")
-            self.values = tf.placeholder(tf.float16, [None, ],name="values")
+            self.states = tf.placeholder(tf.float32,[None, self.num_features], name="observe")
+            self.actions = tf.placeholder(tf.int32,[None, ], name="actions")
+            self.values = tf.placeholder(tf.float32, [None, ],name="values")
 
         layer = tf.layers.dense(
             inputs = self.states,
@@ -64,7 +64,8 @@ class TFLearner:
         
     def choose_action(self, observe):
 
-        prob_weights = self.sess.run(self.all_act_prob, feed_dict={self.states: observe})
+        obs = np.expand_dims(observe, axis=0)
+        prob_weights = self.sess.run(self.all_act_prob, feed_dict={self.states: obs})
         action = np.random.choice(range(prob_weights.shape[1]), p=prob_weights.ravel())  # select action w.r.t the actions prob
         return action
 

@@ -5,7 +5,7 @@ import math
 class Parameters:
     def __init__(self):
         # self.output_filename = 'data/tmp'
-        self.output_filename = 'D:\Code\mec-tmd\drl-script-compact\data\tmp'
+        self.output_filename = 'D:\Code\data\mec-tmd\data_temp'
         self.num_epochs = 100         # number of training epochs
         self.simu_len = 2000             # length of the busy cycle that repeats itself
         self.num_ex = 1                # number of sequences
