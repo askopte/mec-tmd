@@ -156,7 +156,7 @@ class Env:
                 
             if a > 16:
                 a1 = int(np.floor((a-16)/4))
-                if self.machine.running_job[a1] is None:
+                if len(self.machine.running_job) < a1:
                     status = 'MoveOn'
                 else:
                     allocated = self.machine.reallocate_job(a1, a % 4,self.curr_time)
@@ -316,7 +316,7 @@ class Machine:
 
         allocated = False
         
-        res = self.pa.qos_res_list(qos)
+        res = self.pa.qos_res_list[qos]
 
         job = self.running_job[index]
 
