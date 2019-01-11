@@ -41,8 +41,8 @@ class Env:
         nw_ambr_seq = np.zeros([num_ex, simu_len], dtype = int)
         nw_ambr_seq[:,0:9] = 2 
         for i in range(num_ex):
-            for j in range(simu_len / 10 - 1):
-                ran = np.random.rand()
+            for j in range(int(simu_len / 10) - 1):
+                ran = np.random.ranf()
                 if ran < 0.25:
                     if nw_ambr_seq[i, 10*j + 9] <= 2:
                         nw_ambr_seq[i,10*j + 10:10*j + 19] =  nw_ambr_seq[i, 10*j-1] + 1
@@ -55,21 +55,22 @@ class Env:
 
     def generate_sequence_work(self, num_ex, simu_len, job_rate):
 
-        nw_len_seq = np.zeros([num_ex, simu_len * np.ceil(job_rate)], dtype=int)
+        nw_len_seq = np.zeros([num_ex, int(simu_len * np.ceil(job_rate))], dtype=int)
         for i in range(num_ex):
             for j in range(simu_len):
                 job_no = 0
-                for k in range(np.floor(job_rate)):
-                    nw_len_seq[i, np.ceil(job_rate) * self.seq_idx + job_no] = self.nw_dist()
+                for k in range(int(np.floor(job_rate))):
+                    nw_len_seq[i, int(np.ceil(job_rate) * j + job_no)] = self.nw_dist()
                     job_no += 1
                 
-                if np.random.rand() < self.pa.new_job_rate - np.floor(job_rate):  # a new job comes
-                    nw_len_seq[i, np.ceil(job_rate) * self.seq_idx + job_no] = self.nw_dist()
+                if np.random.ranf() < job_rate - np.floor(job_rate):  # a new job comes
+                    nw_len_seq[i, int(np.ceil(job_rate) * j + job_no)] = self.nw_dist()
                     job_no += 1
+        
         return nw_len_seq
 
     def get_new_job_from_seq(self, seq_no, seq_idx, job_no):
-        new_job = Job (job_len=self.nw_len_seqs[seq_no, seq_idx * np.ceil(self.pa.new_job_rate) + job_no],
+        new_job = Job (job_len=self.nw_len_seqs[seq_no, int(seq_idx * np.ceil(self.pa.new_job_rate)) + job_no],
                        job_id=len(self.job_record.record),
                        enter_time=self.curr_time)
         return new_job
@@ -88,8 +89,8 @@ class Env:
         for i in range(self.pa.nw_width): # nw_width
 
             for j in range(self.pa.time_horizon):
-                if self.job_slot[i * self.pa.time_horizon + j] is not None:
-                    image_repr[j, ir_pt : ir_pt + 1] = self.job_slot[i * self.pa.time_horizon + j].len
+                if self.job_slot.slot[i * self.pa.time_horizon + j] is not None:
+                    image_repr[j, ir_pt : ir_pt + 1] = self.job_slot.slot[i * self.pa.time_horizon + j].len
                 
             ir_pt += 1
                 

@@ -17,7 +17,7 @@ class Dist:
     def job_dist(self):
 
         # -- job length --
-        if np.random.rand() < self.job_small_chance:  # small job
+        if np.random.ranf() < self.job_small_chance:  # small job
             nw_len = np.random.randint(self.job_len_small_lower,
                                        self.job_len_small_upper + 1)
         else:  # big job
@@ -34,7 +34,7 @@ def generate_sequence_work(self, pa):
 
     for i in range(simu_len):
 
-        if np.random.rand() < pa.new_job_rate:  # a new job comes
+        if np.random.ranf() < pa.new_job_rate:  # a new job comes
 
             nw_len_seq[i] = self.job_dist()
 

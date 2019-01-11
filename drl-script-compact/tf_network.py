@@ -35,8 +35,8 @@ class TFLearner:
     
     def build_network(self):
         with tf.name_scope('inputs'):
-            self.states = tf.placeholder(tf.int16,[None, self.num_features], name="observe")
-            self.actions = tf.placeholder(tf.int16,[None, ], name="actions")
+            self.states = tf.placeholder(tf.float16,[None, self.num_features], name="observe")
+            self.actions = tf.placeholder(tf.float16,[None, ], name="actions")
             self.values = tf.placeholder(tf.float16, [None, ],name="values")
 
         layer = tf.layers.dense(
@@ -44,14 +44,14 @@ class TFLearner:
             units = 32,
             activation = tf.nn.tanh,
             kernel_initializer=tf.random_normal_initializer(mean=0, stddev=0.3),
-            bias_initializer=tf.constant_initializer(0.1))
+            bias_initializer=tf.constant_initializer(value=0.1))
         
         act = tf.layers.dense(
             inputs = layer,
             units = self.output_height,
             activation = tf.nn.relu,
             kernel_initializer=tf.random_normal_initializer(mean=0, stddev=0.3),
-            bias_initializer=tf.constant_initializer(0.1))
+            bias_initializer=tf.constant_initializer(value=0.1))
 
         self.all_act_prob = tf.nn.softmax(act, name = 'act_prob')
 
