@@ -98,9 +98,11 @@ class Env:
 
             for j in range(self.pa.time_horizon):
                 #if self.machine.running_job[i * self.pa.time_horizon + j] is not None:
+
                 if len(self.machine.running_job) > i * self.pa.time_horizon + j:
-                    image_repr[j, ir_pt : ir_pt + 1] = self.machine.running_job[i * self.pa.time_horizon + j].remain_len
-                    image_repr[j, ir_pt : ir_pt + 1] = self.machine.running_job[i * self.pa.time_horizon + j].res
+                    if self.machine.running_job[i * self.pa.time_horizon + j] is not None:
+                        image_repr[j, ir_pt : ir_pt + 1] = self.machine.running_job[i * self.pa.time_horizon + j].remain_len
+                        image_repr[j, ir_pt + 1 : ir_pt + 2] = self.machine.running_job[i * self.pa.time_horizon + j].res
                 
             ir_pt += 2
             
@@ -117,9 +119,9 @@ class Env:
 
         reward = 0
         for j in self.machine.running_job:
-            reward += self.pa.qos_rew_list(j.res) / float(j.len)
-            if j.qos > self.nw_ambr_seqs[self.seq_no, self.curr_time]:
-                for i in range(self.nw_ambr_seqs[self.seq_no, self.curr_time], j.qos):
+            reward += self.pa.qos_rew_list[j.res] / float(j.len)
+            if j.res > self.nw_ambr_seqs[self.seq_no, self.curr_time]:
+                for i in range(self.nw_ambr_seqs[self.seq_no, self.curr_time], j.res):
                     reward += self.pa.qos_rew_delta[i]
 
         for j in self.machine.pending_job:
@@ -159,7 +161,7 @@ class Env:
                 if len(self.machine.running_job) < a1:
                     status = 'MoveOn'
                 else:
-                    allocated = self.machine.reallocate_job(a1, a % 4,self.curr_time)
+                    allocated = self.machine.reallocate_job(a1, a2,self.curr_time)
                     if not allocated:
                         status = 'MoveOn'
                     else:
@@ -202,7 +204,8 @@ class Env:
             self.job_slot.slot[a1] = None
         
         elif status is 'Reallocate':
-            self.machine.running_job[a1] = None
+            self.job_record.record[self.machine.running_job[a1].id] = self.machine.running_job[a1]
+            self.machine.running_job.remove(self.machine.running_job[a1])
 
         ob = self.observe()
         info = self.job_record
@@ -254,7 +257,7 @@ class Machine:
         self.time_horizon = pa.time_horizon
         self.res_slot = pa.res_slot
 
-        self.avbl_slot = np.ones((self.time_horizon, self.num_res)) * self.res_slot
+        self.avbl_slot = np.ones((self.time_horizon, self.num_res)) * (2**self.res_slot)
 
         self.pending_job = []
         self.running_job = []
@@ -266,7 +269,7 @@ class Machine:
 
         allocated = False
         
-        res = self.pa.qos_res_list(qos)
+        res = self.pa.qos_res_list[qos]
 
         all_latency = self.pa.lte_latency + self.pa.mec_overall_latency
 
@@ -275,19 +278,19 @@ class Machine:
             backhaul_res = np.zeros(all_latency)
 
             for i in range(0,all_latency):
-                backhaul_res[i] = etc.bin_to_dec(self.avbl_slot[t+i,1]) - 1
+                backhaul_res[i] = self.avbl_slot[t+i,1] - 1
 
             for i in range(0, job.len):
-                new_avbl_res[i] = etc.bin_to_dec(self.avbl_slot[t+i+all_latency,0]) - res
+                new_avbl_res[i] = self.avbl_slot[t+i+all_latency,0] - res
             
             if np.all(new_avbl_res[:] >= 0) and np.all(backhaul_res[:] >= 0):
 
                 allocated = True
                 for i in range(0,all_latency):
-                    self.avbl_slot[t+i,1] = etc.dec_to_bin(backhaul_res[i],self.pa.res_slot)
+                    self.avbl_slot[t+i,1] = backhaul_res[i]
                 
                 for i in range(0,job.len):
-                    self.avbl_slot[t+i+all_latency,0] = etc.dec_to_bin(new_avbl_res[i],self.pa.res_slot)
+                    self.avbl_slot[t+i+all_latency,0] = new_avbl_res[i]
                 
                 job.start_time = curr_time + t + all_latency
                 job.finish_time = job.start_time + job.len
@@ -300,16 +303,16 @@ class Machine:
 
                 assert job.start_time != -1
                 assert job.finish_time != -1
-                assert job.finish_time > job.start_time
+                assert job.finish_time >= job.start_time
                 canvas_start_time = job.start_time - curr_time
                 canvas_end_time = job.finish_time - curr_time
 
                 for res in range(self.num_res):
                     for i in range(canvas_start_time, canvas_end_time):
-                        avbl_slot = np.where(self.canvas[res, i, :] == 0)[0]
-                        self.canvas[res, i, :] = etc.dec_to_bin(new_avbl_res[i],self.pa.res_slot)
+                        self.canvas[res, i, :] = etc.dec_to_bin(self.avbl_slot[t + i, res],self.pa.res_slot)
 
                 break
+
         return allocated
         
     def reallocate_job(self, index, qos, curr_time):
@@ -318,47 +321,60 @@ class Machine:
         
         res = self.pa.qos_res_list[qos]
 
-        job = self.running_job[index]
+        if len(self.running_job) > index:
 
-        all_latency = self.pa.lte_latency + self.pa.mec_overall_latency
+            job = self.running_job[index]
 
-        released_res = np.zeros(self.time_horizon - job.len - all_latency)
+            all_latency = self.pa.lte_latency + self.pa.mec_overall_latency
 
-        for i in range(0,job.remain_len):
-            released_res[i] = etc.bin_to_dec(self.avbl_slot[i,0]) + self.pa.qos_res_list[job.res]
+            released_res = np.zeros(self.time_horizon)
+
+            for i in range(0,job.remain_len):
+                released_res[i] = self.avbl_slot[i,0] + self.pa.qos_res_list[job.res]
         
-        for i in range(job.remain_len, self.time_horizon - job.len - all_latency):
-            released_res[i] = etc.bin_to_dec(self.avbl_slot[i,0])
+            for i in range(job.remain_len, self.time_horizon):
+                released_res[i] = self.avbl_slot[i,0]
 
-        for t in range(1, self.time_horizon - job.remain_len - all_latency):
-            new_avbl_res = np.zeros(job.remain_len)
-            backhaul_res = np.zeros(all_latency)
+            for t in range(1, self.time_horizon):
+                new_avbl_res = np.zeros(job.remain_len)
+                backhaul_res = np.zeros(all_latency)
 
-            for i in range(all_latency):
-                backhaul_res[i] = etc.bin_to_dec(self.avbl_slot[t+i,1]) - 1
+                for i in range(0, all_latency):
+                    backhaul_res[i] = self.avbl_slot[t+i,1] - 1
 
-            for i in range(0, job.remain_len):
-                new_avbl_res[i] = released_res[i+t+all_latency] - res
+                for i in range(0, job.remain_len):
+                    new_avbl_res[i] = released_res[i+t+all_latency] - res
             
-            if np.all(new_avbl_res[:] >= 0) and np.all(backhaul_res[:] >= 0):
-                allocated = True
-                for i in range(0,all_latency):
-                    self.avbl_slot[t+i,1] = etc.dec_to_bin(backhaul_res[i],self.pa.res_slot)
+                if np.all(new_avbl_res[:] >= 0) and np.all(backhaul_res[:] >= 0):
+                    allocated = True
+                    for i in range(0,all_latency):
+                        self.avbl_slot[t+i,1] = backhaul_res[i]
                 
-                for i in range(0,self.time_horizon - job.len - all_latency):
-                    self.avbl_slot[i,0] = etc.dec_to_bin(released_res[i],self.pa.res_slot)
+                    for i in range(0,self.time_horizon):
+                        self.avbl_slot[i,0] = released_res[i]
 
-                for i in range(0,job.remain_len):
-                    self.avbl_slot[t+i+all_latency,0] = etc.dec_to_bin(new_avbl_res[i],self.pa.res_slot)
+                    for i in range(0,job.remain_len):
+                        self.avbl_slot[t+i+all_latency,0] = new_avbl_res[i]
                 
-                job.start_time = curr_time + t + all_latency
-                job.finish_time = job.start_time + job.remain_len
+                    job.start_time = curr_time + t + all_latency
+                    job.finish_time = job.start_time + job.remain_len
 
-                self.pending_job.append(job)
+                    self.pending_job.append(job)
 
-                # update graphical representation(incompleted)
+                    # update graphical representation(incompleted)
 
-                break
+                    assert job.start_time != -1
+                    assert job.finish_time != -1
+                    assert job.finish_time >= job.start_time
+                    canvas_start_time = job.start_time - curr_time
+                    canvas_end_time = job.finish_time - curr_time
+
+                    for res in range(self.num_res):
+                        for i in range(canvas_start_time, canvas_end_time):
+                            self.canvas[res, i, :] = etc.dec_to_bin(self.avbl_slot[t + i, res],self.pa.res_slot)
+
+                    break
+        
         return allocated
 
     def time_proceed(self, curr_time):
@@ -368,12 +384,13 @@ class Machine:
 
         for job in self.pending_job:
 
-            if job.start_time >= curr_time:
+            if job.start_time <= curr_time:
                 self.running_job.append(job)
                 self.pending_job.remove(job)
 
         for job in self.running_job:
-
+            
+            job.remain_len -= 1 
             if job.finish_time <= curr_time:
                 self.running_job.remove(job)
 

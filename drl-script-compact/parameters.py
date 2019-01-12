@@ -35,9 +35,9 @@ class Parameters:
          # distribution for new job arrival
         self.dist = job_distribution.Dist(self.max_job_len)
 
-        self.qos_res_list = (1, 3, 5, 8)
-        self.qos_rew_list = (-8, -5, -3, -1)
-        self.qos_rew_delta = (-1, -1, -2, -2)
+        self.qos_res_list = [1, 3, 5, 8]
+        self.qos_rew_list = [-8, -5, -3, -1]
+        self.qos_rew_delta = [-1, -1, -2, -2]
         self.mec_overall_latency = 5
         self.lte_latency = 3
 
