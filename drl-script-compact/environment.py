@@ -26,7 +26,7 @@ class Env:
         else:
             self.nw_len_seqs = nw_len_seqs
         
-        self.nw_ambr_seqs = self.generate_sequence_ue_ambr(self.pa.num_ex,self.pa.simu_len)
+        self.nw_ambr_seqs = self.generate_sequence_ue_ambr(self.pa.num_ex,self.pa.episode_max_length)
 
         self.seq_no = 0  # which example sequence
         self.seq_idx = 0  # index in that sequence
@@ -202,6 +202,8 @@ class Env:
         elif status is 'Allocate':
             self.job_record.record[self.job_slot.slot[a1].id] = self.job_slot.slot[a1]
             self.job_slot.slot[a1] = None
+            for i in range(a1,self.pa.num_nw - 1):
+                self.job_slot.slot[i] = self.job_slot.slot[i+1]
         
         elif status is 'Reallocate':
             self.job_record.record[self.machine.running_job[a1].id] = self.machine.running_job[a1]
@@ -309,7 +311,7 @@ class Machine:
 
                 for res in range(self.num_res):
                     for i in range(canvas_start_time, canvas_end_time):
-                        self.canvas[res, i, :] = etc.dec_to_bin(self.avbl_slot[t + i, res],self.pa.res_slot)
+                        self.canvas[res, i, :] = etc.dec_to_bin(self.avbl_slot[i, res],self.pa.res_slot)
 
                 break
 
@@ -335,7 +337,7 @@ class Machine:
             for i in range(job.remain_len, self.time_horizon):
                 released_res[i] = self.avbl_slot[i,0]
 
-            for t in range(1, self.time_horizon):
+            for t in range(1, self.time_horizon - job.remain_len - all_latency):
                 new_avbl_res = np.zeros(job.remain_len)
                 backhaul_res = np.zeros(all_latency)
 
@@ -371,7 +373,7 @@ class Machine:
 
                     for res in range(self.num_res):
                         for i in range(canvas_start_time, canvas_end_time):
-                            self.canvas[res, i, :] = etc.dec_to_bin(self.avbl_slot[t + i, res],self.pa.res_slot)
+                            self.canvas[res, i, :] = etc.dec_to_bin(self.avbl_slot[i, res],self.pa.res_slot)
 
                     break
         
@@ -380,7 +382,7 @@ class Machine:
     def time_proceed(self, curr_time):
 
         self.avbl_slot[:-1, :] = self.avbl_slot[1:, :]
-        self.avbl_slot[-1, :] = self.res_slot
+        self.avbl_slot[-1, :] = 2**self.res_slot
 
         for job in self.pending_job:
 

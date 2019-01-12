@@ -109,7 +109,7 @@ def main():
 
     pa = parameters.Parameters()
 
-    env = environment.Env(pa, end = 'end')
+    env = environment.Env(pa, end = 'all_done')
 
     tf_learner = tf_network.TFLearner(pa, pa.network_input_height, pa.network_input_width, 33)
 
@@ -183,8 +183,7 @@ def main():
             
             param_file.close()
 
-            plot_lr_curve(pa.output_filename,
-                          max_rew_lr_curve, mean_rew_lr_curve)
+            #plot_lr_curve(pa.output_filename,max_rew_lr_curve, mean_rew_lr_curve)
 
 
 if __name__ == '__main__':
