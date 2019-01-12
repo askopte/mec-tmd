@@ -13,7 +13,7 @@ class Parameters:
         self.output_freq = 10          # interval for output and store parameters
 
         self.num_seq_per_batch = 10    # number of sequences to compute baseline
-        self.episode_max_length = 200  # enforcing an artificial terminal
+        self.episode_max_length = 3000  # enforcing an artificial terminal
 
         self.num_res = 2               # number of resources in the system
         self.num_nw = 200                # maximum allowed number of work in the queue
