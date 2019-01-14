@@ -183,7 +183,7 @@ def main():
             
             param_file.close()
 
-            #plot_lr_curve(pa.output_filename,max_rew_lr_curve, mean_rew_lr_curve)
+            plot_lr_curve(pa.output_filename,max_rew_lr_curve, mean_rew_lr_curve)
 
 
 if __name__ == '__main__':
