@@ -58,12 +58,13 @@ def concatenate_all_ob(trajs, pa):
         timesteps_total += len(trajs[i]['reward'])
     
     all_ob = np.zeros(
-        (timesteps_total, 1, pa.network_input_height, pa.network_input_width))
+        (timesteps_total, pa.network_input_height*pa.network_input_width))
+        #(timesteps_total, 1, pa.network_input_height*pa.network_input_width))
 
     timesteps = 0
     for i in range(len(trajs)):
         for j in range(len(trajs[i]['reward'])):
-            all_ob[timesteps, 0, :, :] = trajs[i]['ob'][j]
+            all_ob[timesteps, :] = trajs[i]['ob'][j]
             timesteps += 1
     
     return all_ob
@@ -75,14 +76,14 @@ def concatenate_all_ob_across_examples(all_ob, pa):
         total_samp += all_ob[i].shape[0]
 
     all_ob_contact = np.zeros(
-        (total_samp, 1, pa.network_input_height, pa.network_input_width))
+        (total_samp, pa.network_input_height*pa.network_input_width))
 
     total_samp = 0
 
     for i in range(num_ex):
         prev_samp = total_samp
         total_samp += all_ob[i].shape[0]
-        all_ob_contact[prev_samp : total_samp, :, :, :] = all_ob[i]
+        all_ob_contact[prev_samp : total_samp, :] = all_ob[i]
 
     return all_ob_contact
 
@@ -108,7 +109,7 @@ def main():
 
     pa = parameters.Parameters()
 
-    env = environment.Env(pa, end = 'end')
+    env = environment.Env(pa, end = 'all_done')
 
     tf_learner = tf_network.TFLearner(pa, pa.network_input_height, pa.network_input_width, 33)
 
@@ -182,8 +183,7 @@ def main():
             
             param_file.close()
 
-            plot_lr_curve(pa.output_filename,
-                          max_rew_lr_curve, mean_rew_lr_curve)
+            plot_lr_curve(pa.output_filename,max_rew_lr_curve, mean_rew_lr_curve)
 
 
 if __name__ == '__main__':
