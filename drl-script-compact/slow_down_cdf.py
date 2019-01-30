@@ -41,16 +41,16 @@ def get_traj(test_type, pa, env, episode_max_length, pg_resume=None, render=Fals
             a = pg_learner.choose_action(ob)
 
         elif test_type == 'Access':
-            a = other_agents.get_access_action(env.machine, env.job_slot)
+            a = etc.get_access_action(env.machine, env.job_slot)
 
         elif test_type == 'Quality':
-            a = other_agents.get_quality_action(env.machine, env.job_slot)
+            a = etc.get_quality_action(env.machine, env.job_slot)
 
         elif test_type == 'Greedy':
-            a = other_agents.get_greedy_action(env.machine, env.job_slot)
+            a = etc.get_greedy_action(pa, env.machine, env.job_slot)
 
         elif test_type == 'Random':
-            a = other_agents.get_random_action(env.job_slot)
+            a = etc.get_random_action(env.job_slot)
 
         ob, rew, done, info = env.step(a, repeat=True)
 
