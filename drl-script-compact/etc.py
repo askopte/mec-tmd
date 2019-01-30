@@ -29,6 +29,34 @@ def dec_to_bin(input, dim):
     
     return output
 
+def get_access_action(machine, job_slot):
+    
+    for i in range(4):
+        if job_slot.slot[i] is not None:
+            return 4 * i + 1
+    
+    return 0
+
+def get_quality_action(machine, job_slot):
+
+    for i in range(4):
+        if job_slot.slot[i] is not None:
+            return 4 * i + 3
+    
+    return 0
+
+def get_random_action(machine):
+
+    return int(np.random.ranf()*32)
+
+def get_greedy_action(machine, job_slot):
+
+    for i in range(4):
+        if job_slot.slot[i] is not None:
+            for j in range(4):
+                if machine.avbl_slot[8:8+]
+                
+
 def main():
 
     # Test Program

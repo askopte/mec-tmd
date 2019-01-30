@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import environment
 import parameters
 import tf_network
-import other_agents
+import etc
 
 def discount(x, gamma):
     """
