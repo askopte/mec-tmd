@@ -63,6 +63,7 @@ def concatenate_all_ob(trajs, pa):
         #(timesteps_total, 1, pa.network_input_height*pa.network_input_width))
 
     timesteps = 0
+    
     for i in range(len(trajs)):
         for j in range(len(trajs[i]['reward'])):
             all_ob[timesteps, :] = trajs[i]['ob'][j]
