@@ -69,7 +69,7 @@ def get_greedy_action(pa, machine, job_slot):
 
             for j in reversed(range(4)):
 
-                if machine.avbl_slot[all_latency:all_latency+job_slot.slot[i].len, 0] >= pa.qos_res_list[j]:
+                if machine.avbl_slot[all_latency:all_latency+job_slot.slot[i].len, 0].all() >= pa.qos_res_list[j]:
 
                     return i*4+j
     

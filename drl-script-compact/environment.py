@@ -131,6 +131,8 @@ class Env:
             if j is not None:
                 reward += self.pa.hold_penalty / float(j.len)
         
+        reward += self.machine.avbl_slot[0,1] - (2**self.machine.res_slot)
+        
         return reward
 
     def step(self, a, repeat=False):

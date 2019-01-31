@@ -6,11 +6,11 @@ class Parameters:
     def __init__(self):
         # self.output_filename = 'data/tmp'
         self.output_filename = 'D:\Code\data\mec-tmd\data_temp'
-        self.num_epochs = 201         # number of training epochs
+        self.num_epochs = 101         # number of training epochs
         self.simu_len = 100             # length of the busy cycle that repeats itself
         self.num_ex = 1                # number of sequences
 
-        self.output_freq = 20          # interval for output and store parameters
+        self.output_freq = 10          # interval for output and store parameters
 
         self.num_seq_per_batch = 10    # number of sequences to compute baseline
         self.episode_max_length = 2000  # enforcing an artificial terminal
