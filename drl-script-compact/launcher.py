@@ -7,6 +7,7 @@ import numpy as np
 import parameters
 import environment
 import tf_network
+import slow_down_cdf
 
 def discount(x, gamma):
     """
@@ -87,7 +88,7 @@ def concatenate_all_ob_across_examples(all_ob, pa):
 
     return all_ob_contact
 
-def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve):
+def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews):
     num_colors = 2
     cm = plt.get_cmap('gist_rainbow')
 
@@ -95,6 +96,9 @@ def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve):
 
     ax = fig.add_subplot(111)
     ax.set_color_cycle([cm(1. * i / num_colors) for i in range(num_colors)])
+
+    for k in ref_discount_rews:
+        ax.plot(np.tile(np.average(ref_discount_rews[k]), len(mean_rew_lr_curve)), linewidth=2, label=k)
 
     ax.plot(mean_rew_lr_curve, linewidth=2, label='PG mean')
     ax.plot(max_rew_lr_curve, linewidth=2, label='PG max')
@@ -112,6 +116,8 @@ def main():
     env = environment.Env(pa, end = 'all_done')
 
     tf_learner = tf_network.TFLearner(pa, pa.network_input_height, pa.network_input_width, 33)
+
+    ref_discount_rews = slow_down_cdf.launch(pa, pg_resume=None, render=False, end='all_done')
 
     timer_start = time.time()
 
@@ -183,7 +189,7 @@ def main():
             
             param_file.close()
 
-            plot_lr_curve(pa.output_filename,max_rew_lr_curve, mean_rew_lr_curve)
+            plot_lr_curve(pa.output_filename,max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews)
 
 
 if __name__ == '__main__':

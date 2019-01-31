@@ -62,7 +62,7 @@ def get_traj(test_type, pa, env, episode_max_length, pg_resume=None, render=Fals
 
     return np.array(rews), info
 
-def launch(pa, pg_resume = None, render = False, plot = False, end = "no_new_job"):
+def launch(pa, pg_resume = None, render = False, end = "no_new_job"):
 
     test_types = ['Access', 'Quality', 'Greedy', 'Random']
 
@@ -72,21 +72,9 @@ def launch(pa, pg_resume = None, render = False, plot = False, end = "no_new_job
     env = environment.Env(pa,end = end)
 
     all_discount_rews = {}
-    jobs_slow_down = {}
-    work_complete = {}
-    work_remain = {}
-    job_len_remain = {}
-    num_job_remain = {}
-    job_remain_delay = {}
 
     for test_type in test_types:
         all_discount_rews[test_type] = []
-        jobs_slow_down[test_type] = []
-        work_complete[test_type] = []
-        work_remain[test_type] = []
-        job_len_remain[test_type] = []
-        num_job_remain[test_type] = []
-        job_remain_delay[test_type] = []
     
     for seq_idx in range(pa.num_ex):
         print('\n\n')
@@ -104,52 +92,7 @@ def launch(pa, pg_resume = None, render = False, plot = False, end = "no_new_job
                 discount(rews, pa.discount)[0]
             )
 
-            enter_time = np.array([info.record[i].enter_time for i in range(len(info.record))])
-            finish_time = np.array([info.record[i].finish_time for i in range(len(info.record))])
-            job_len = np.array([info.record[i].len for i in range(len(info.record))])
-            job_total_size = np.array([np.sum(info.record[i].res_vec) for i in range(len(info.record))])
-
-            finished_idx = (finish_time >= 0)
-            unfinished_idx = (finish_time < 0)
-
-            jobs_slow_down[test_type].append(
-                (finish_time[finished_idx] - enter_time[finished_idx]) / job_len[finished_idx]
-            )
-            work_complete[test_type].append(
-                np.sum(job_len[finished_idx] * job_total_size[finished_idx])
-            )
-            work_remain[test_type].append(
-                np.sum(job_len[unfinished_idx] * job_total_size[unfinished_idx])
-            )
-            job_len_remain[test_type].append(
-                np.sum(job_len[unfinished_idx])
-            )
-            num_job_remain[test_type].append(
-                len(job_len[unfinished_idx])
-            )
-            job_remain_delay[test_type].append(
-                np.sum(pa.episode_max_length - enter_time[unfinished_idx])
-            )
-
         env.seq_no = (env.seq_no + 1) % env.pa.num_ex
-
-    if plot:
-        num_colors = len(test_types)
-        cm = plt.get_cmap('gist_rainbow')
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.set_color_cycle([cm(1. * i / num_colors) for i in range(num_colors)])
-
-        for test_type in test_types:
-            slow_down_cdf = np.sort(np.concatenate(jobs_slow_down[test_type]))
-            slow_down_yvals = np.arange(len(slow_down_cdf))/float(len(slow_down_cdf))
-            ax.plot(slow_down_cdf, slow_down_yvals, linewidth=2, label=test_type)
-
-        plt.legend(loc=4)
-        plt.xlabel("job slowdown", fontsize=20)
-        plt.ylabel("CDF", fontsize=20)
-        # plt.show()
-        plt.savefig("comparsion_slowdown_fig" + ".pdf")
     
-    return all_discount_rews, jobs_slow_down
+    return all_discount_rews
 
