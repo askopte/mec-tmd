@@ -198,11 +198,17 @@ class Env:
                     for i in range(int(np.ceil(self.pa.new_job_rate))):
                         new_job = self.get_new_job_from_seq(self.seq_no, self.seq_idx, job_num)
                         if new_job.len > 0:  # a new job comes
+                            
+                            exceed = True
                             for j in range(self.pa.num_nw):
                                 if self.job_slot.slot[j] is None:  # put in new visible job slots
                                     self.job_slot.slot[j] = new_job
                                     self.job_record.record[new_job.id] = new_job
+                                    exceed = False
                                     break
+                            
+                            if exceed:
+                                print("Resource Shortage.")
                         job_num += 1
                 
             reward = self.get_reward()

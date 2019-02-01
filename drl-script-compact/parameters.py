@@ -19,7 +19,7 @@ class Parameters:
         self.num_nw = 200                # maximum allowed number of work in the queue
 
         self.time_horizon = 200         # number of time steps in the graph
-        self.max_job_len = 150          # maximum duration of new jobs
+        self.max_job_len = 100          # maximum duration of new jobs
         self.res_slot = 8             # maximum number of available resource slots
 
         self.ambr_len = 10             # LTE ambr prediction size
@@ -37,7 +37,7 @@ class Parameters:
 
         self.qos_res_list = [1, 3, 5, 8]
         self.qos_rew_list = [-64, -16, -4, -1]
-        self.qos_rew_delta = [-16, -8, -4, -2]
+        self.qos_rew_delta = [-16, -5, -1, -1]
         self.mec_overall_latency = 5
         self.lte_latency = 3
 
