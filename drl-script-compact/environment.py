@@ -132,10 +132,10 @@ class Env:
             if j is not None:
                 if self.curr_time - j.enter_time <= 8:
                     reward -= 2
-                elif self.curr_time - j.enter_time > 18:
-                    reward -= 1024
+                elif self.curr_time - j.enter_time > 20:
+                    reward -= 64
                 else:
-                    reward -= 2**(self.curr_time - j.enter_time - 8)
+                    reward -= 2**int((self.curr_time - j.enter_time - 8)/2)
         
         # reward += self.machine.avbl_slot[0,1] - (2**self.machine.res_slot)
         
