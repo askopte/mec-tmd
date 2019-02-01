@@ -90,7 +90,7 @@ def concatenate_all_ob_across_examples(all_ob, pa):
     return all_ob_contact
 
 def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews):
-    num_colors = 2
+    num_colors = 10
     cm = plt.get_cmap('gist_rainbow')
 
     fig = plt.figure(figsize=(12, 5))
@@ -186,9 +186,6 @@ def main():
         mean_rew_lr_curve.append(eprews.mean())
 
         if iteration % pa.output_freq == 0:
-            param_file = open(pa.output_filename + '_' + str(iteration) + '.pkl', 'wb')
-            
-            param_file.close()
 
             plot_lr_curve(pa.output_filename,max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews)
 

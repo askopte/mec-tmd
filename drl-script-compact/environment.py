@@ -91,8 +91,9 @@ class Env:
             for j in range(self.pa.time_horizon):
                 if self.job_slot.slot[i * self.pa.time_horizon + j] is not None:
                     image_repr[j, ir_pt : ir_pt + 1] = self.job_slot.slot[i * self.pa.time_horizon + j].len
+                    image_repr[j, ir_pt + 1 : ir_pt + 2] = self.curr_time - self.job_slot.slot[i * self.pa.time_horizon + j].enter_time
                 
-            ir_pt += 1
+            ir_pt += 2
                 
         for i in range(self.pa.job_width): # job_width
 
@@ -119,19 +120,24 @@ class Env:
 
         reward = 0
         for j in self.machine.running_job:
-            reward += self.pa.qos_rew_list[j.res] / float(j.len)
+            reward += self.pa.qos_rew_list[j.res] 
             if j.res > self.nw_ambr_seqs[self.seq_no, self.curr_time]:
                 for i in range(self.nw_ambr_seqs[self.seq_no, self.curr_time], j.res):
                     reward += self.pa.qos_rew_delta[i]
 
         for j in self.machine.pending_job:
-            reward += self.pa.hold_penalty / float(j.len)
+            reward += self.pa.hold_penalty 
 
         for j in self.job_slot.slot:
             if j is not None:
-                reward += self.pa.hold_penalty / float(j.len)
+                if self.curr_time - j.enter_time <= 8:
+                    reward -= 2
+                elif self.curr_time - j.enter_time > 18:
+                    reward -= 1024
+                else:
+                    reward -= 2**(self.curr_time - j.enter_time - 8)
         
-        reward += self.machine.avbl_slot[0,1] - (2**self.machine.res_slot)
+        # reward += self.machine.avbl_slot[0,1] - (2**self.machine.res_slot)
         
         return reward
 
@@ -147,7 +153,7 @@ class Env:
         if a == 32:  # explicit void action
             status = 'MoveOn'
         else:
-            if a <= 16:
+            if a < 16:
                 a1 = int(np.floor(a/4))
                 if self.job_slot.slot[a1] is None:
                     status = 'MoveOn'
@@ -158,7 +164,7 @@ class Env:
                     else:
                         status = 'Allocate'
                 
-            if a > 16:
+            if a >= 16:
                 a1 = int(np.floor((a-16)/4))
                 if len(self.machine.running_job) < a1:
                     status = 'MoveOn'

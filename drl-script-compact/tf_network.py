@@ -39,15 +39,22 @@ class TFLearner:
             self.actions = tf.placeholder(tf.int32,[None, ], name="actions")
             self.values = tf.placeholder(tf.float32, [None, ],name="values")
 
-        layer = tf.layers.dense(
+        layer1 = tf.layers.dense(
             inputs = self.states,
             units = 32,
             activation = tf.nn.tanh,
             kernel_initializer=tf.random_normal_initializer(mean=0, stddev=0.3),
             bias_initializer=tf.constant_initializer(value=0.1))
         
+        layer2 = tf.layers.dense(
+            inputs = layer1,
+            units = 32,
+            activation = tf.nn.tanh,
+            kernel_initializer=tf.random_normal_initializer(mean=0, stddev=0.3),
+            bias_initializer=tf.constant_initializer(value=0.1))
+        
         act = tf.layers.dense(
-            inputs = layer,
+            inputs = layer2,
             units = self.output_height,
             activation = tf.nn.relu,
             kernel_initializer=tf.random_normal_initializer(mean=0, stddev=0.3),
