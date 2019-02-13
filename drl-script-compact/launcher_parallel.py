@@ -1,11 +1,16 @@
 import os
 import time
-import tensorflow as tf
-import matplotlib.pyplot as plt
+import threading
 import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+
+from multiprocessing import process
+from multiprocessing import Manager
 
 import parameters
 import environment
+import job_distribution
 import tf_network
 import slow_down_cdf
 
@@ -23,6 +28,22 @@ def discount(x, gamma):
     # scipy.signal.lfilter([1],[1,-gamma],x[::-1], axis=0)[::-1]
     return out
 
+def init_accums(tf_learner):  # in rmsprop
+    accums = []
+    params = tf_learner.get_num_params()
+    for param in params:
+        accum = np.zeros(param.shape, dtype=param.dtype)
+        accums.append(accum)
+    return accums
+
+def rmsprop_updates_outside(grads, params, accums, stepsize, rho=0.9, epsilon=1e-9):
+
+    assert len(grads) == len(params)
+    assert len(grads) == len(accums)
+    for dim in range(len(grads)):
+        accums[dim] = rho * accums[dim] + (1 - rho) * grads[dim] ** 2
+        params[dim] += (stepsize * grads[dim] / np.sqrt(accums[dim] + epsilon))
+    
 def get_traj(agent, env, episode_max_length):
 
     env.reset()
@@ -51,7 +72,7 @@ def get_traj(agent, env, episode_max_length):
             'action': np.array(acts),
             'info': info
             }
-        
+    
 def concatenate_all_ob(trajs, pa):
 
     timesteps_total = 0
@@ -115,82 +136,55 @@ def main():
     pa = parameters.Parameters()
 
     env = environment.Env(pa, end = 'all_done')
-
-    tf_learner = tf_network.TFLearner(pa, pa.network_input_height, pa.network_input_width, 33)
-
+    
     ref_discount_rews = slow_down_cdf.launch(pa, pg_resume=None, render=False, end='all_done')
 
+    # ----------------------------
+    print("Preparing for workers...")
+    # ----------------------------
+
+    tf_learners = []
+    envs = []
+
+    nw_len_seqs = job_distribution.generate_sequence_work(pa)
+    nw_ambr_seqs = job_distribution.generate_sequence_ue_ambr(pa)
+
+    for ex in range(pa.num_ex):
+
+        print ("-prepare for env-", ex)
+        env = environment.Env(pa, nw_len_seqs=nw_len_seqs, nw_ambr_seqs=nw_ambr_seqs, end = 'all_done')
+        env.seq_no = ex
+        envs.append(env)
+    
+    for ex in range(pa.batch_size + 1):
+
+        print ("-prepare for worker-", ex)
+        tf_learner = tf_network.TFLearner(pa, pa.network_input_height, pa.network_input_width, 33)
+        tf_learners.append(tf_learner)
+    
+    accums = init_accums(tf_learners[pa.batch_size])
+
+    # --------------------------------------
+    print("Preparing for reference data...")
+    # --------------------------------------
+
+    ref_discount_rews = slow_down_cdf.launch(pa, pg_resume=None, render=False, end='all_done')
+    
     max_rew_lr_curve = []
     mean_rew_lr_curve = []
 
+    # --------------------------------------
+    print("Start training...")
+    # --------------------------------------
+
     timer_start = time.time()
 
-    for iteration in range(pa.num_epochs):
+    for iteration in range(1, pa.num_epochs):
 
-        all_ob = []
-        all_action = []
-        all_adv = []
-        all_eprews = []
-        all_eplens = []
+        ps = []
+        manager = Manager()
+        manager_result = manager
 
-        for ex in range(pa.num_ex):
-
-            trajs = []
-
-            for i in range(pa.num_seq_per_batch):
-                traj = get_traj(tf_learner, env, pa.episode_max_length)
-                trajs.append(traj)
-            
-            env.seq_no = (env.seq_no + 1) % env.pa.num_ex
-
-            all_ob.append(concatenate_all_ob(trajs, pa))
-
-            rets = [discount(traj["reward"], pa.discount) for traj in trajs]
-            maxlen = max(len(ret) for ret in rets)
-            padded_rets = [np.concatenate([ret, np.zeros(maxlen - len(ret))]) for ret in rets]
-
-            baseline = np.mean(padded_rets, axis=0)
-
-            advs = [ret - baseline[:len(ret)] for ret in rets]
-            all_action.append(np.concatenate([traj["action"] for traj in trajs]))
-            all_adv.append(np.concatenate(advs))
-
-            all_eprews.append(np.array([discount(traj["reward"], pa.discount)[0] for traj in trajs]))  # episode total rewards
-            all_eplens.append(np.array([len(traj["reward"]) for traj in trajs]))  # episode lengths
-        
-        all_ob = concatenate_all_ob_across_examples(all_ob, pa)
-        all_action = np.concatenate(all_action)
-        all_adv = np.concatenate(all_adv)
-
-        # Do policy gradient update step
-        loss = tf_learner.learn(all_ob,all_action,all_adv)
-        eprews = np.concatenate(all_eprews)  # episode total rewards
-        eplens = np.concatenate(all_eplens)  # episode lengths
-
-        timer_end = time.time()
-
-        print ("-----------------")
-        print ("Iteration: \t %i" % iteration)
-        print ("NumTrajs: \t %i" % len(eprews))
-        print ("NumTimesteps: \t %i" % np.sum(eplens))
-        print ("Loss:     \t %s" % loss)
-        print ("MaxRew: \t %s" % np.average([np.max(rew) for rew in all_eprews]))
-        print ("MeanRew: \t %s +- %s" % (eprews.mean(), eprews.std()))
-        print ("MeanLen: \t %s +- %s" % (eplens.mean(), eplens.std()))
-        print ("Elapsed time\t %s" % (timer_end - timer_start), "seconds")
-        print ("-----------------")
-
-        timer_start = time.time()
-
-        max_rew_lr_curve.append(np.average([np.max(rew) for rew in all_eprews]))
-        mean_rew_lr_curve.append(eprews.mean())
-
-        if iteration % pa.output_freq == 0:
-            param_file = open(pa.output_filename + '_' + str(iteration) + '.pkl', 'wb')
-            
-            param_file.close()
-
-            plot_lr_curve(pa.output_filename,max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews)
 
 
 if __name__ == '__main__':

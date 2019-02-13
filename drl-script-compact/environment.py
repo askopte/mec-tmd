@@ -8,7 +8,7 @@ import etc
 
 class Env:
     def __init__(self, pa, nw_len_seqs = None,  
-                 render = False, end = 'no_new_job'):
+                 nw_ambr_seqs = None, render = False, end = 'no_new_job'):
         
         self.pa = pa
         self.render = render
@@ -25,8 +25,13 @@ class Env:
         
         else:
             self.nw_len_seqs = nw_len_seqs
+
+        if nw_ambr_seqs is None :
+            # generate new work
+            self.nw_ambr_seqs = self.generate_sequence_ue_ambr(self.pa.num_ex,self.pa.episode_max_length)
         
-        self.nw_ambr_seqs = self.generate_sequence_ue_ambr(self.pa.num_ex,self.pa.episode_max_length)
+        else:
+            self.nw_ambr_seqs = nw_ambr_seqs
 
         self.seq_no = 0  # which example sequence
         self.seq_idx = 0  # index in that sequence

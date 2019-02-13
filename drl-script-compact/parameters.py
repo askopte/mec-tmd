@@ -3,6 +3,7 @@ import job_distribution
 import math
 
 class Parameters:
+    
     def __init__(self):
         # self.output_filename = 'data/tmp'
         self.output_filename = 'D:\Code\data\mec-tmd\data_temp'
@@ -62,6 +63,8 @@ class Parameters:
         self.lr_rate = 0.001          # learning rate
         self.rms_rho = 0.9            # for rms prop
         self.rms_eps = 1e-9           # for rms prop
+
+        self.batch_size = 10
         
     def compute_dependent_parameters(self):
         assert self.num_nw % self.time_horizon == 0  # such that it can be converted into an image

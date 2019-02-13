@@ -1,4 +1,5 @@
 import numpy as np
+import parameters
 
 class Dist:
 
@@ -28,17 +29,39 @@ class Dist:
 
 def generate_sequence_work(self, pa):
 
-    simu_len = pa.simu_len * pa.num_ex
+    num_ex = pa.num_ex
+    simu_len = pa.simu_len
+    job_rate = pa.new_job_rate
 
-    nw_len_seq = np.zeros(simu_len, dtype=int)
-
-    for i in range(simu_len):
-
-        if np.random.ranf() < pa.new_job_rate:  # a new job comes
-
-            nw_len_seq[i] = self.job_dist()
-
-    nw_len_seq = np.reshape(nw_len_seq,
-                            [pa.num_ex, pa.simu_len])
-
+    nw_len_seq = np.zeros([num_ex, int(simu_len * np.ceil(job_rate))], dtype=int)
+    for i in range(num_ex):
+        for j in range(simu_len):
+            job_no = 0
+            for k in range(int(np.floor(job_rate))):
+                nw_len_seq[i, int(np.ceil(job_rate) * j + job_no)] = self.nw_dist()
+                job_no += 1
+                
+            if np.random.ranf() < job_rate - np.floor(job_rate):  # a new job comes
+                nw_len_seq[i, int(np.ceil(job_rate) * j + job_no)] = self.nw_dist()
+                job_no += 1
+        
     return nw_len_seq
+
+def generate_sequence_ue_ambr(self, pa):
+
+    num_ex = pa.num_ex
+    simu_len = pa.simu_len
+
+    nw_ambr_seq = np.zeros([num_ex, simu_len], dtype = int)
+    nw_ambr_seq[:,0:9] = 2 
+    for i in range(num_ex):
+        for j in range(int(simu_len / 10) - 1):
+            ran = np.random.ranf()
+            if ran < 0.25:
+                if nw_ambr_seq[i, 10*j + 9] <= 2:
+                    nw_ambr_seq[i,10*j + 10:10*j + 19] =  nw_ambr_seq[i, 10*j-1] + 1
+            if ran > 0.75:
+                if nw_ambr_seq[i, 10*j + 9] >= 1:
+                    nw_ambr_seq[i,10*j + 10:10*j + 19] =  nw_ambr_seq[i, 10*j-1] - 1
+        
+    return nw_ambr_seq
