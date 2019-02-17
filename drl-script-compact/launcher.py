@@ -90,7 +90,7 @@ def concatenate_all_ob_across_examples(all_ob, pa):
     return all_ob_contact
 
 def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews):
-    num_colors = 2
+    num_colors = 10
     cm = plt.get_cmap('gist_rainbow')
 
     fig = plt.figure(figsize=(12, 5))
