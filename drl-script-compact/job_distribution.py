@@ -6,12 +6,12 @@ class Dist:
 
         self.job_len = job_len
 
-        self.job_small_chance = 0.8
+        self.job_small_chance = 0.6
 
         self.job_len_big_lower = job_len * 2 / 3
         self.job_len_big_upper = job_len
 
-        self.job_len_small_lower = 1
+        self.job_len_small_lower = 10
         self.job_len_small_upper = job_len / 5
     
     def job_dist(self):

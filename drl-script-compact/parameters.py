@@ -6,21 +6,21 @@ class Parameters:
     def __init__(self):
         # self.output_filename = 'data/tmp'
         self.output_filename = 'D:\Code\data\mec-tmd\data_temp'
-        self.num_epochs = 101         # number of training epochs
-        self.simu_len = 100             # length of the busy cycle that repeats itself
+        self.num_epochs = 801         # number of training epochs
+        self.simu_len = 200             # length of the busy cycle that repeats itself
         self.num_ex = 1                # number of sequences
 
-        self.output_freq = 10          # interval for output and store parameters
+        self.output_freq = 50          # interval for output and store parameters
 
         self.num_seq_per_batch = 10    # number of sequences to compute baseline
-        self.episode_max_length = 2000  # enforcing an artificial terminal
+        self.episode_max_length = 4000  # enforcing an artificial terminal
 
         self.num_res = 2               # number of resources in the system
         self.num_nw = 200                # maximum allowed number of work in the queue
 
         self.time_horizon = 200         # number of time steps in the graph
-        self.max_job_len = 150          # maximum duration of new jobs
-        self.res_slot = 10             # maximum number of available resource slots
+        self.max_job_len = 100          # maximum duration of new jobs
+        self.res_slot = 8             # maximum number of available resource slots
 
         self.ambr_len = 10             # LTE ambr prediction size
 
@@ -36,8 +36,8 @@ class Parameters:
         self.dist = job_distribution.Dist(self.max_job_len)
 
         self.qos_res_list = [1, 3, 5, 8]
-        self.qos_rew_list = [-8, -5, -3, -1]
-        self.qos_rew_delta = [-1, -1, -2, -2]
+        self.qos_rew_list = [-64, -16, -4, -1]
+        self.qos_rew_delta = [-16, -5, -1, -1]
         self.mec_overall_latency = 5
         self.lte_latency = 3
 
@@ -51,12 +51,12 @@ class Parameters:
         self.network_input_height = self.time_horizon
         self.network_input_width = \
             self.res_slot * self.num_res + \
-            self.nw_width + self.job_width * 2 + \
+            self.nw_width * 2 + self.job_width * 2 + \
             1  # for extra info, 1) time since last new job 2) LTE network infomation
 
-        self.delay_penalty = -1       # penalty for delaying things in the current work screen
-        self.hold_penalty = -1        # penalty for holding things in the new work screen
-        self.dismiss_penalty = -1     # penalty for missing a job because the queue is full
+        self.delay_penalty = -16       # penalty for delaying things in the current work screen
+        self.hold_penalty = -16        # penalty for holding things in the new work screen
+        self.dismiss_penalty = -128     # penalty for missing a job because the queue is full
 
         self.num_frames = 1           # number of frames to combine and process
         self.lr_rate = 0.001          # learning rate
