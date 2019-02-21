@@ -51,7 +51,7 @@ def get_quality_action(machine, job_slot):
 
 def get_random_action(job_slot):
     
-    return int(np.floor(np.random.ranf()*32))
+    return int(np.floor(np.random.ranf()*33))
 
 def get_greedy_action(pa, machine, job_slot):
 

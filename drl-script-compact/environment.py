@@ -341,7 +341,7 @@ class Machine:
 
             job = self.running_job[index]
 
-            all_latency = self.pa.lte_latency + self.pa.mec_overall_latency
+            all_latency = self.pa.lte_latency
 
             released_res = np.zeros(self.time_horizon)
 
@@ -353,18 +353,12 @@ class Machine:
 
             for t in range(1, self.time_horizon - job.remain_len - all_latency):
                 new_avbl_res = np.zeros(job.remain_len)
-                backhaul_res = np.zeros(all_latency)
-
-                for i in range(0, all_latency):
-                    backhaul_res[i] = self.avbl_slot[t+i,1] - 1
 
                 for i in range(0, job.remain_len):
                     new_avbl_res[i] = released_res[i+t+all_latency] - res
             
-                if np.all(new_avbl_res[:] >= 0) and np.all(backhaul_res[:] >= 0):
+                if np.all(new_avbl_res[:] >= 0):
                     allocated = True
-                    for i in range(0,all_latency):
-                        self.avbl_slot[t+i,1] = backhaul_res[i]
                 
                     for i in range(0,self.time_horizon):
                         self.avbl_slot[i,0] = released_res[i]
