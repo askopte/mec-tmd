@@ -5,9 +5,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
 
-from multiprocessing import process
-from multiprocessing import Manager
-
 import parameters
 import environment
 import job_distribution
@@ -131,6 +128,31 @@ def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_d
 
     plt.savefig(output_file_prefix + "_lr_curve" + ".pdf")
 
+def get_traj_worker(tf_learner, env, pa):
+
+    trajs = []
+
+    for i in range(pa.num_seq_per_batch):
+        traj = get_traj(tf_learner, env, pa.episode_max_length)
+        trajs.append(traj)
+    
+    all_ob = concatenate_all_ob(trajs, pa)
+
+    rets = [discount(traj["reward"], pa.discount) for traj in trajs]
+    maxlen = max(len(ret) for ret in rets)
+    padded_rets = [np.concatenate([ret, np.zeros(maxlen - len(ret))]) for ret in rets]
+
+    baseline = np.mean(padded_rets, axis=0)
+    
+    advs = [ret - baseline[:len(ret)] for ret in rets]
+    all_action = np.concatenate([traj["action"] for traj in trajs])
+    all_adv = np.concatenate(advs)
+
+    all_eprews = np.array([discount(traj["reward"], pa.discount)[0] for traj in trajs])
+    all_eplens = np.array([len(traj["reward"]) for traj in trajs])
+
+    return all_ob, all_action, all_adv, all_eprews, all_eplens
+
 def main():
 
     pa = parameters.Parameters()
@@ -143,7 +165,6 @@ def main():
     print("Preparing for workers...")
     # ----------------------------
 
-    tf_learners = []
     envs = []
 
     nw_len_seqs = job_distribution.generate_sequence_work(pa)
@@ -156,13 +177,7 @@ def main():
         env.seq_no = ex
         envs.append(env)
     
-    for ex in range(pa.batch_size + 1):
-
-        print ("-prepare for worker-", ex)
-        tf_learner = tf_network.TFLearner(pa, pa.network_input_height, pa.network_input_width, 33)
-        tf_learners.append(tf_learner)
-    
-    accums = init_accums(tf_learners[pa.batch_size])
+    tf_learner = tf_network.TFLearner(pa, pa.network_input_height, pa.network_input_width, 33)
 
     # --------------------------------------
     print("Preparing for reference data...")
@@ -181,11 +196,54 @@ def main():
 
     for iteration in range(1, pa.num_epochs):
 
-        ps = []
-        manager = Manager()
-        manager_result = manager
+        ex_indices = range(pa.num_ex)
+        np.random.shuffle(ex_indices)
 
+        all_eprews = []
+        all_eplens = []
+        eprews = []
+        eplens = []
+        all_loss = []
 
+        ex_counter = 0
+
+        for ex in range(pa.num_ex):
+
+            ex_idx = ex_indices[ex]
+
+            all_ob, all_action, all_adv, eprews, eplens = get_traj_worker(tf_learner, env, pa)
+            all_eprews.append(eprews)
+            all_eplens.append(eplens)
+
+            loss = tf_learner.learn(all_ob,all_action, all_adv)
+            all_loss.append(loss)
+
+            ex_counter += 1
+
+            if ex_counter >= pa.batch_size or ex == pa.num_ex - 1:
+
+                print (ex,"out of", pa.num_ex)
+        
+        timer_end = time.time()
+
+        print ("-----------------")
+        print ("Iteration: \t %i" % iteration)
+        print ("NumTrajs: \t %i" % len(eprews))
+        print ("NumTimesteps: \t %i" % np.sum(eplens))
+        print ("MaxRew: \t %s" % np.average([np.max(rew) for rew in all_eprews]))
+        print ("MeanRew: \t %s +- %s" % (np.mean(eprews), np.std(eprews)))
+        print ("MeanLen: \t %s +- %s" % (np.mean(eplens), np.std(eplens)))
+        print ("Elapsed time\t %s" % (timer_end - timer_start), "seconds")
+        print ("-----------------")
+
+        timer_start = time.time()
+
+        max_rew_lr_curve.append(np.average([np.max(rew) for rew in all_eprews]))
+        mean_rew_lr_curve.append(np.mean(eprews))
+
+        if iteration % pa.output_freq == 0:
+
+            plot_lr_curve(pa.output_filename,max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews)
 
 if __name__ == '__main__':
     main()
