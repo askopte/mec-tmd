@@ -96,8 +96,9 @@ class Env:
             for j in range(self.pa.time_horizon):
                 if self.job_slot.slot[i * self.pa.time_horizon + j] is not None:
                     image_repr[j, ir_pt : ir_pt + 1] = self.job_slot.slot[i * self.pa.time_horizon + j].len
+                    image_repr[j, ir_pt + 1 : ir_pt + 2] = self.curr_time - self.job_slot.slot[i * self.pa.time_horizon + j].enter_time
                 
-            ir_pt += 1
+            ir_pt += 2
                 
         for i in range(self.pa.job_width): # job_width
 
@@ -124,19 +125,24 @@ class Env:
 
         reward = 0
         for j in self.machine.running_job:
-            reward += self.pa.qos_rew_list[j.res] / float(j.len)
+            reward += self.pa.qos_rew_list[j.res] 
             if j.res > self.nw_ambr_seqs[self.seq_no, self.curr_time]:
                 for i in range(self.nw_ambr_seqs[self.seq_no, self.curr_time], j.res):
                     reward += self.pa.qos_rew_delta[i]
 
         for j in self.machine.pending_job:
-            reward += self.pa.hold_penalty / float(j.len)
+            reward += self.pa.hold_penalty 
 
         for j in self.job_slot.slot:
             if j is not None:
-                reward += self.pa.hold_penalty / float(j.len)
+                if self.curr_time - j.enter_time <= 8:
+                    reward -= 2
+                elif self.curr_time - j.enter_time > 20:
+                    reward -= 64
+                else:
+                    reward -= 2**int((self.curr_time - j.enter_time - 8)/2)
         
-        reward += self.machine.avbl_slot[0,1] - (2**self.machine.res_slot)
+        # reward += self.machine.avbl_slot[0,1] - (2**self.machine.res_slot)
         
         return reward
 
@@ -152,7 +158,7 @@ class Env:
         if a == 32:  # explicit void action
             status = 'MoveOn'
         else:
-            if a <= 16:
+            if a < 16:
                 a1 = int(np.floor(a/4))
                 if self.job_slot.slot[a1] is None:
                     status = 'MoveOn'
@@ -163,7 +169,7 @@ class Env:
                     else:
                         status = 'Allocate'
                 
-            if a > 16:
+            if a >= 16:
                 a1 = int(np.floor((a-16)/4))
                 if len(self.machine.running_job) < a1:
                     status = 'MoveOn'
@@ -197,11 +203,17 @@ class Env:
                     for i in range(int(np.ceil(self.pa.new_job_rate))):
                         new_job = self.get_new_job_from_seq(self.seq_no, self.seq_idx, job_num)
                         if new_job.len > 0:  # a new job comes
+                            
+                            exceed = True
                             for j in range(self.pa.num_nw):
                                 if self.job_slot.slot[j] is None:  # put in new visible job slots
                                     self.job_slot.slot[j] = new_job
                                     self.job_record.record[new_job.id] = new_job
+                                    exceed = False
                                     break
+                            
+                            if exceed:
+                                print("Resource Shortage.")
                         job_num += 1
                 
             reward = self.get_reward()
@@ -334,7 +346,7 @@ class Machine:
 
             job = self.running_job[index]
 
-            all_latency = self.pa.lte_latency + self.pa.mec_overall_latency
+            all_latency = self.pa.lte_latency
 
             released_res = np.zeros(self.time_horizon)
 
@@ -346,18 +358,12 @@ class Machine:
 
             for t in range(1, self.time_horizon - job.remain_len - all_latency):
                 new_avbl_res = np.zeros(job.remain_len)
-                backhaul_res = np.zeros(all_latency)
-
-                for i in range(0, all_latency):
-                    backhaul_res[i] = self.avbl_slot[t+i,1] - 1
 
                 for i in range(0, job.remain_len):
                     new_avbl_res[i] = released_res[i+t+all_latency] - res
             
-                if np.all(new_avbl_res[:] >= 0) and np.all(backhaul_res[:] >= 0):
+                if np.all(new_avbl_res[:] >= 0):
                     allocated = True
-                    for i in range(0,all_latency):
-                        self.avbl_slot[t+i,1] = backhaul_res[i]
                 
                     for i in range(0,self.time_horizon):
                         self.avbl_slot[i,0] = released_res[i]

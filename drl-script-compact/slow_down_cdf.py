@@ -40,7 +40,7 @@ def get_traj(test_type, pa, env, episode_max_length, pg_resume=None, render=Fals
         if test_type == 'DRL':
             a = pg_learner.choose_action(ob)
 
-        elif test_type == 'Access':
+        elif test_type == 'Max Access':
             a = etc.get_access_action(env.machine, env.job_slot)
 
         elif test_type == 'Quality':
@@ -64,7 +64,7 @@ def get_traj(test_type, pa, env, episode_max_length, pg_resume=None, render=Fals
 
 def launch(pa, pg_resume = None, render = False, end = "no_new_job"):
 
-    test_types = ['Access', 'Quality', 'Greedy', 'Random']
+    test_types = ['Max Access', 'Greedy', 'Random']
 
     if pg_resume is not None:
         test_types = ['DRL-TO'] + test_types
