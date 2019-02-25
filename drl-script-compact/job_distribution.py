@@ -27,30 +27,32 @@ class Dist:
 
         return nw_len
 
-def generate_sequence_work(self, pa):
+def generate_sequence_work(pa):
 
     num_ex = pa.num_ex
     simu_len = pa.simu_len
     job_rate = pa.new_job_rate
+
+    nw_dist = pa.dist.job_dist
 
     nw_len_seq = np.zeros([num_ex, int(simu_len * np.ceil(job_rate))], dtype=int)
     for i in range(num_ex):
         for j in range(simu_len):
             job_no = 0
             for k in range(int(np.floor(job_rate))):
-                nw_len_seq[i, int(np.ceil(job_rate) * j + job_no)] = self.nw_dist()
+                nw_len_seq[i, int(np.ceil(job_rate) * j + job_no)] = nw_dist()
                 job_no += 1
                 
-            if np.random.ranf() < job_rate - np.floor(job_rate):  # a new job comes
-                nw_len_seq[i, int(np.ceil(job_rate) * j + job_no)] = self.nw_dist()
+            if np.random.ranf() < job_rate - np.floor(job_rate): 
+                nw_len_seq[i, int(np.ceil(job_rate) * j + job_no)] = nw_dist()
                 job_no += 1
         
     return nw_len_seq
 
-def generate_sequence_ue_ambr(self, pa):
+def generate_sequence_ue_ambr(pa):
 
     num_ex = pa.num_ex
-    simu_len = pa.simu_len
+    simu_len = pa.episode_max_length
 
     nw_ambr_seq = np.zeros([num_ex, simu_len], dtype = int)
     nw_ambr_seq[:,0:9] = 2 

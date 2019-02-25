@@ -11,6 +11,8 @@ import job_distribution
 import tf_network
 import slow_down_cdf
 
+tf_lock = threading.Lock()
+
 def discount(x, gamma):
     """
     Given vector x, computes a vector y such that
@@ -53,7 +55,11 @@ def get_traj(agent, env, episode_max_length):
 
     for _ in range(episode_max_length):
 
-        act = agent.choose_action(ob)
+        tf_lock.acquire()
+        try:
+            act = agent.choose_action(ob)
+        finally:
+            tf_lock.release()
 
         obs.append(ob)
         acts.append(act)
@@ -153,13 +159,31 @@ def get_traj_worker(tf_learner, env, pa):
 
     return all_ob, all_action, all_adv, all_eprews, all_eplens
 
+def mt_worker(tf_learner, env, pa, all_loss, all_eprews, all_eplens, ex):
+
+    all_ob, all_action, all_adv, eprews, eplens = get_traj_worker(tf_learner, env, pa)
+
+    tf_lock.acquire()
+    try:
+        loss = tf_learner.learn(all_ob,all_action, all_adv)
+    finally:
+        tf_lock.release()
+    
+    all_loss.append(loss)
+    all_eprews.append(eprews)
+    all_eplens.append(eplens)
+
+    print ("-----------------")
+    print ("NumExp \t %i" % ex)
+    print ("NumTrajs: \t %i" % len(eprews))
+    print ("NumTimesteps: \t %i" % np.sum(eplens))
+    print ("MeanRew: \t %s +- %s" % (np.mean(eprews), np.std(eprews)))
+    print ("MeanLen: \t %s +- %s" % (np.mean(eplens), np.std(eplens)))
+    print ("-----------------")
+
 def main():
 
     pa = parameters.Parameters()
-
-    env = environment.Env(pa, end = 'all_done')
-    
-    ref_discount_rews = slow_down_cdf.launch(pa, pg_resume=None, render=False, end='all_done')
 
     # ----------------------------
     print("Preparing for workers...")
@@ -194,56 +218,53 @@ def main():
 
     timer_start = time.time()
 
+    ex_indices = range(pa.num_ex)
+
+    ts = []
+    all_eprews = []
+    all_eplens = []
+    all_loss = []
+
+    for ex in range(pa.num_ex):
+            
+        ex_idx = ex_indices[ex]
+        thread = threading.Thread(target = mt_worker, args= (tf_learner, envs[ex_idx], pa, all_loss, all_eprews, all_eplens, ex_idx))
+        ts.append(thread)
+
     for iteration in range(1, pa.num_epochs):
 
-        ex_indices = range(pa.num_ex)
-        np.random.shuffle(ex_indices)
-
-        all_eprews = []
-        all_eplens = []
-        eprews = []
-        eplens = []
-        all_loss = []
-
-        ex_counter = 0
+        # np.random.shuffle(ex_indices)
 
         for ex in range(pa.num_ex):
-
+            
             ex_idx = ex_indices[ex]
+            ts[ex].start()
+        
+        for ex in range(pa.num_ex):
 
-            all_ob, all_action, all_adv, eprews, eplens = get_traj_worker(tf_learner, env, pa)
-            all_eprews.append(eprews)
-            all_eplens.append(eplens)
-
-            loss = tf_learner.learn(all_ob,all_action, all_adv)
-            all_loss.append(loss)
-
-            ex_counter += 1
-
-            if ex_counter >= pa.batch_size or ex == pa.num_ex - 1:
-
-                print (ex,"out of", pa.num_ex)
+            ts[ex].join()
         
         timer_end = time.time()
 
         print ("-----------------")
-        print ("Iteration: \t %i" % iteration)
-        print ("NumTrajs: \t %i" % len(eprews))
-        print ("NumTimesteps: \t %i" % np.sum(eplens))
+        print ("CompletedIteration: \t %i" % iteration)
         print ("MaxRew: \t %s" % np.average([np.max(rew) for rew in all_eprews]))
-        print ("MeanRew: \t %s +- %s" % (np.mean(eprews), np.std(eprews)))
-        print ("MeanLen: \t %s +- %s" % (np.mean(eplens), np.std(eplens)))
         print ("Elapsed time\t %s" % (timer_end - timer_start), "seconds")
         print ("-----------------")
 
         timer_start = time.time()
 
         max_rew_lr_curve.append(np.average([np.max(rew) for rew in all_eprews]))
-        mean_rew_lr_curve.append(np.mean(eprews))
+        mean_rew_lr_curve.append(np.mean(all_eprews))
 
         if iteration % pa.output_freq == 0:
 
             plot_lr_curve(pa.output_filename,max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews)
+
+        all_eprews = []
+        all_eplens = []
+        all_loss = []
+
 
 if __name__ == '__main__':
     main()
