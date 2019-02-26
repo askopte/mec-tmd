@@ -177,6 +177,7 @@ def mt_worker(tf_learner, env, pa, all_loss, all_eprews, all_eplens, ex):
     print ("NumExp \t %i" % ex)
     print ("NumTrajs: \t %i" % len(eprews))
     print ("NumTimesteps: \t %i" % np.sum(eplens))
+    print ("MaxRew: \t %s" % np.average([np.max(rew) for rew in eprews]))
     print ("MeanRew: \t %s +- %s" % (np.mean(eprews), np.std(eprews)))
     print ("MeanLen: \t %s +- %s" % (np.mean(eplens), np.std(eplens)))
     print ("-----------------")
@@ -225,12 +226,6 @@ def main():
     all_eplens = []
     all_loss = []
 
-    for ex in range(pa.num_ex):
-            
-        ex_idx = ex_indices[ex]
-        thread = threading.Thread(target = mt_worker, args= (tf_learner, envs[ex_idx], pa, all_loss, all_eprews, all_eplens, ex_idx))
-        ts.append(thread)
-
     for iteration in range(1, pa.num_epochs):
 
         # np.random.shuffle(ex_indices)
@@ -238,17 +233,19 @@ def main():
         for ex in range(pa.num_ex):
             
             ex_idx = ex_indices[ex]
+            thread = threading.Thread(target = mt_worker, args= (tf_learner, envs[ex_idx], pa, all_loss, all_eprews, all_eplens, ex_idx), name= 'Worker-'+str(ex_indices[ex]))
+            ts.append(thread)
             ts[ex].start()
         
         for ex in range(pa.num_ex):
 
             ts[ex].join()
         
+        ts = []
         timer_end = time.time()
 
         print ("-----------------")
         print ("CompletedIteration: \t %i" % iteration)
-        print ("MaxRew: \t %s" % np.average([np.max(rew) for rew in all_eprews]))
         print ("Elapsed time\t %s" % (timer_end - timer_start), "seconds")
         print ("-----------------")
 
