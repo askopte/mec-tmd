@@ -4,6 +4,7 @@ import threading
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
+import pickle
 
 import parameters
 import environment
@@ -124,7 +125,7 @@ def concatenate_all_ob_across_examples(all_ob, pa):
 
     return all_ob_contact
 
-def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews, rate_lr_curve, ref_idle_rate):
+def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews, rate_lr_curve, ref_idle_rate, resume):
     num_colors = 10
     cm = plt.get_cmap('gist_rainbow')
 
@@ -155,7 +156,7 @@ def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_d
     plt.xlabel("Iteration", fontsize=20)
     plt.ylabel("Average idle Rate", fontsize=20)
 
-    plt.savefig(output_file_prefix + "_lr_curve" + ".pdf")
+    plt.savefig(output_file_prefix + '_' + str(resume) + "_lr_curve" + ".pdf")
 
 def get_traj_worker(tf_learner, env, pa):
 
@@ -211,6 +212,8 @@ def mt_worker(tf_learner, env, pa, all_loss, all_eprews, all_eplens, all_rate, e
 
 def main():
 
+    resume = None
+
     pa = parameters.Parameters()
 
     # ----------------------------
@@ -219,8 +222,26 @@ def main():
 
     envs = []
 
-    nw_len_seqs = job_distribution.generate_sequence_work(pa)
-    nw_ambr_seqs = job_distribution.generate_sequence_ue_ambr(pa)
+    tf_learner = tf_network.TFLearner(pa, pa.network_input_height, pa.network_input_width, 33)
+
+    if resume is not None:
+        print("Find resume data, load from slot "+str(resume))
+        file = open(pa.output_filename + "_" + str(resume) + ".pkl", 'rb')
+        nw_len_seqs = pickle.load(file)
+        nw_ambr_seqs = pickle.load(file)
+        file.close()
+        tf_learner.load_data(pa.output_filename + '_' + str(resume))
+
+    else:
+        resume = np.random.randint(100,999)
+        print("Cannot find resume data, write in slot "+str(resume))
+        file = open(pa.output_filename + "_" + str(resume) + ".pkl", 'wb')
+        nw_len_seqs = job_distribution.generate_sequence_work(pa)
+        nw_ambr_seqs = job_distribution.generate_sequence_ue_ambr(pa)
+        pickle.dump(nw_len_seqs, file)
+        pickle.dump(nw_ambr_seqs, file)
+        file.close()
+        tf_learner.save_data(pa.output_filename + '_' + str(resume))
 
     for ex in range(pa.num_ex):
 
@@ -228,8 +249,7 @@ def main():
         env = environment.Env(pa, nw_len_seqs=nw_len_seqs, nw_ambr_seqs=nw_ambr_seqs, end = 'all_done')
         env.seq_no = ex
         envs.append(env)
-    
-    tf_learner = tf_network.TFLearner(pa, pa.network_input_height, pa.network_input_width, 33)
+
 
     # --------------------------------------
     print("Preparing for reference data...")
@@ -255,7 +275,7 @@ def main():
     all_rate = []
     all_loss = []
 
-    for iteration in range(1, pa.num_epochs):
+    for iteration in range(0, pa.num_epochs):
 
         # np.random.shuffle(ex_indices)
 
@@ -274,6 +294,7 @@ def main():
         timer_end = time.time()
 
         print ("-----------------")
+        print ("Slot: "+str(resume))
         print ("CompletedIteration: \t %i" % iteration)
         print ("Elapsed time\t %s" % (timer_end - timer_start), "seconds")
         print ("-----------------")
@@ -286,7 +307,8 @@ def main():
 
         if iteration % pa.output_freq == 0:
 
-            plot_lr_curve(pa.output_filename,max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews, rate_lr_curve, ref_idle_rate)
+            plot_lr_curve(pa.output_filename,max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews, rate_lr_curve, ref_idle_rate, resume)
+            tf_learner.save_data(pa.output_filename + '_' + str(resume))
 
         all_eprews = []
         all_eplens = []

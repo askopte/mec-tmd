@@ -93,4 +93,10 @@ class TFLearner:
             num_params += reduce(mul, [dim.value for dim in shape], 1)
         
         return num_params
+
+    def save_data(self, resume):
+        self.saver.save(self.sess, resume + '.ckpt')
+
+    def load_data(self, resume):
+        self.saver.restore(self.sess, resume + '.ckpt')
     
