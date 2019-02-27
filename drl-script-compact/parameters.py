@@ -8,7 +8,7 @@ class Parameters:
         # self.output_filename = 'data/tmp'
         self.output_filename = 'D:\Code\data\mec-tmd\data_temp'
         self.num_epochs = 1001         # number of training epochs
-        self.simu_len = 200             # length of the busy cycle that repeats itself
+        self.simu_len = 250             # length of the busy cycle that repeats itself
         self.num_ex = 4                # number of sequences
 
         self.output_freq = 50          # interval for output and store parameters
