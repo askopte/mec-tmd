@@ -275,7 +275,7 @@ def main():
     all_rate = []
     all_loss = []
 
-    for iteration in range(0, pa.num_epochs):
+    for iteration in range(1, pa.num_epochs):
 
         # np.random.shuffle(ex_indices)
 
