@@ -7,9 +7,9 @@ class Parameters:
     def __init__(self):
         # self.output_filename = 'data/tmp'
         self.output_filename = 'D:\Code\data\mec-tmd\data_temp'
-        self.num_epochs = 601         # number of training epochs
+        self.num_epochs = 1001         # number of training epochs
         self.simu_len = 100             # length of the busy cycle that repeats itself
-        self.num_ex = 2                # number of sequences
+        self.num_ex = 4                # number of sequences
 
         self.output_freq = 50          # interval for output and store parameters
 
