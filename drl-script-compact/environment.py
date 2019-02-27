@@ -152,7 +152,7 @@ class Env:
 
         done = False
         reward = 0
-        info = None
+        info = []
         a2 = a % 4
 
         if a == 32:  # explicit void action
@@ -229,7 +229,8 @@ class Env:
             self.machine.running_job.remove(self.machine.running_job[a1])
 
         ob = self.observe()
-        info = self.job_record
+        info.append(self.curr_time)
+        info.append(self.machine.avbl_slot[0,0] / 2**self.pa.res_slot)
 
         if done:
             self.seq_idx = 0

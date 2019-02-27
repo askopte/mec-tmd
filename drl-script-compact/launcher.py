@@ -9,6 +9,8 @@ import environment
 import tf_network
 import slow_down_cdf
 
+# WARNING: This launcher is currently obsolete, use parallel instead.
+
 def discount(x, gamma):
     """
     Given vector x, computes a vector y such that
@@ -29,7 +31,7 @@ def get_traj(agent, env, episode_max_length):
     obs = []
     acts = []
     rews = []
-    info = []
+    infos = []
 
     ob = env.observe()
 
@@ -43,6 +45,7 @@ def get_traj(agent, env, episode_max_length):
         ob,rew,done,info = env.step(act,repeat = True)
 
         rews.append(rew)
+        infos.append(info)
         
         if done:break
     

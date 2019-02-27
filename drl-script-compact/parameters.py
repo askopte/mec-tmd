@@ -7,14 +7,14 @@ class Parameters:
     def __init__(self):
         # self.output_filename = 'data/tmp'
         self.output_filename = 'D:\Code\data\mec-tmd\data_temp'
-        self.num_epochs = 501         # number of training epochs
-        self.simu_len = 200             # length of the busy cycle that repeats itself
-        self.num_ex = 4                # number of sequences
+        self.num_epochs = 601         # number of training epochs
+        self.simu_len = 100             # length of the busy cycle that repeats itself
+        self.num_ex = 8                # number of sequences
 
         self.output_freq = 50          # interval for output and store parameters
 
-        self.num_seq_per_batch = 10    # number of sequences to compute baseline
-        self.episode_max_length = 2000  # enforcing an artificial terminal
+        self.num_seq_per_batch = 5    # number of sequences to compute baseline
+        self.episode_max_length = 1000  # enforcing an artificial terminal
 
         self.num_res = 2               # number of resources in the system
         self.num_nw = 200                # maximum allowed number of work in the queue
