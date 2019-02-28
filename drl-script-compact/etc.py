@@ -37,6 +37,7 @@ def get_access_action(machine, job_slot):
 
             return 4 * i 
     
+    if job_slot.slot[0] is not None: return 0
     return 32
 
 def get_quality_action(machine, job_slot):
@@ -47,6 +48,7 @@ def get_quality_action(machine, job_slot):
 
             return 4 * i + 3
     
+    if job_slot.slot[0] is not None: return 0
     return 32
 
 def get_random_action(job_slot):
@@ -86,6 +88,26 @@ def get_greedy_action(pa, machine, job_slot):
 
             return i * 4 + j
     
+    for i in range(4):
+
+        if job_slot.slot[i] is None: continue
+
+        for j in reversed(range(4)):
+
+            for t in range(pa.time_horizon):
+                new_avbl_slot[t] = machine.avbl_slot[t,0]
+
+            for temp_job in job_slot.slot:
+                if temp_job is not None:
+                    new_avbl_slot[all_latency : all_latency + temp_job.len] = new_avbl_slot[all_latency : all_latency + temp_job.len] - pa.qos_res_list[j]
+
+            if np.min(new_avbl_slot[all_latency : all_latency + job_slot.slot[i].len]) >= 0:
+
+                test1 = np.min(machine.avbl_slot[all_latency : all_latency+job_slot.slot[i].len, 0])
+
+                return i * 4 + j
+    
+    if job_slot.slot[0] is not None: return 0
     return 32
                 
 

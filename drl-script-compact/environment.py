@@ -151,6 +151,7 @@ class Env:
         status = None
 
         done = False
+        dismiss_rew = 0
         reward = 0
         info = []
         a2 = a % 4
@@ -161,7 +162,16 @@ class Env:
             if a < 16:
                 a1 = int(np.floor(a/4))
                 if self.job_slot.slot[a1] is None:
-                    status = 'MoveOn'
+                    if self.job_slot.slot[0] is not None:
+                        allocated = self.machine.allocate_job(self.job_slot.slot[0],0, self.curr_time)
+                        if not allocated:
+                            status = 'MoveOn'
+                        else:
+                            a1 = 0
+                            a2 = 0
+                            status = 'Allocate'
+                    else:
+                        status = 'MoveOn'
                 else:
                     allocated = self.machine.allocate_job(self.job_slot.slot[a1],a2, self.curr_time)
                     if not allocated:
@@ -171,7 +181,7 @@ class Env:
                 
             if a >= 16:
                 a1 = int(np.floor((a-16)/4))
-                if len(self.machine.running_job) < a1:
+                if len(self.machine.running_job) <= a1 + 1:
                     status = 'MoveOn'
                 else:
                     allocated = self.machine.reallocate_job(a1, a2,self.curr_time)
@@ -199,9 +209,8 @@ class Env:
             if not done:
 
                 if self.seq_idx < self.pa.simu_len:  # otherwise, end of new job sequence, i.e. no new jobs
-                    job_num = 0
                     for i in range(int(np.ceil(self.pa.new_job_rate))):
-                        new_job = self.get_new_job_from_seq(self.seq_no, self.seq_idx, job_num)
+                        new_job = self.get_new_job_from_seq(self.seq_no, self.seq_idx, i)
                         if new_job.len > 0:  # a new job comes
                             
                             exceed = True
@@ -213,10 +222,10 @@ class Env:
                                     break
                             
                             if exceed:
-                                print("Resource Shortage.")
-                        job_num += 1
+                                dismiss_rew += self.pa.dismiss_penalty * new_job.len
                 
             reward = self.get_reward()
+            reward += dismiss_rew
         
         elif status is 'Allocate':
             self.job_record.record[self.job_slot.slot[a1].id] = self.job_slot.slot[a1]

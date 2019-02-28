@@ -11,7 +11,7 @@ class Parameters:
         self.simu_len = 250             # length of the busy cycle that repeats itself
         self.num_ex = 4                # number of sequences
 
-        self.output_freq = 50          # interval for output and store parameters
+        self.output_freq = 10          # interval for output and store parameters
 
         self.num_seq_per_batch = 10    # number of sequences to compute baseline
         self.episode_max_length = 2000  # enforcing an artificial terminal
@@ -29,7 +29,7 @@ class Parameters:
 
         self.job_num_cap = 200          # maximum number of distinct colors in current work graph
 
-        self.new_job_rate = 1.5        # lambda in new job arrival Poisson Process
+        self.new_job_rate = 2.2        # lambda in new job arrival Poisson Process
 
         self.discount = 1           # discount factor
 
@@ -57,7 +57,7 @@ class Parameters:
 
         self.delay_penalty = -10       # penalty for delaying things in the current work screen
         self.hold_penalty = -3        # penalty for holding things in the new work screen
-        self.dismiss_penalty = -100     # penalty for missing a job because the queue is full
+        self.dismiss_penalty = -40     # penalty for missing a job because the queue is full
 
         self.num_frames = 1           # number of frames to combine and process
         self.lr_rate = 0.001          # learning rate

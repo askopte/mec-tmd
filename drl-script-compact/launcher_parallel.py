@@ -54,7 +54,7 @@ def get_traj(agent, env, episode_max_length):
 
     ob = env.observe()
 
-    for _ in range(episode_max_length):
+    for i in range(episode_max_length):
 
         tf_lock.acquire()
         try:
@@ -213,6 +213,7 @@ def mt_worker(tf_learner, env, pa, all_loss, all_eprews, all_eplens, all_rate, e
 def main():
 
     resume = None
+    resume_itr = None
 
     pa = parameters.Parameters()
 
@@ -226,21 +227,39 @@ def main():
 
     if resume is not None:
         print("Find resume data, load from slot "+str(resume))
+
         file = open(pa.output_filename + "_" + str(resume) + ".pkl", 'rb')
         nw_len_seqs = pickle.load(file)
         nw_ambr_seqs = pickle.load(file)
         file.close()
+
+        file = open(pa.output_filename + "_" + str(resume) + "_etc.pkl", 'rb')
+        resume_itr = pickle.load(file)
+        resume_itr += 1
+        print("Start from iteration "+str(resume_itr))
+        max_rew_lr_curve = pickle.load(file)
+        mean_rew_lr_curve = pickle.load(file)
+        rate_lr_curve = pickle.load(file)
+        file.close()
+
         tf_learner.load_data(pa.output_filename + '_' + str(resume))
 
     else:
         resume = np.random.randint(100,999)
         print("Cannot find resume data, write in slot "+str(resume))
+
         file = open(pa.output_filename + "_" + str(resume) + ".pkl", 'wb')
         nw_len_seqs = job_distribution.generate_sequence_work(pa)
         nw_ambr_seqs = job_distribution.generate_sequence_ue_ambr(pa)
         pickle.dump(nw_len_seqs, file)
         pickle.dump(nw_ambr_seqs, file)
         file.close()
+
+        resume_itr = 1
+        max_rew_lr_curve = []
+        mean_rew_lr_curve = []
+        rate_lr_curve = []
+
         tf_learner.save_data(pa.output_filename + '_' + str(resume))
 
     for ex in range(pa.num_ex):
@@ -256,10 +275,6 @@ def main():
     # --------------------------------------
 
     ref_discount_rews , ref_idle_rate = slow_down_cdf.launch(pa, pg_resume=None, render=False, end='all_done')
-    
-    max_rew_lr_curve = []
-    mean_rew_lr_curve = []
-    rate_lr_curve = []
 
     # --------------------------------------
     print("Start training...")
@@ -270,12 +285,13 @@ def main():
     ex_indices = range(pa.num_ex)
 
     ts = []
+
     all_eprews = []
     all_eplens = []
     all_rate = []
     all_loss = []
 
-    for iteration in range(1, pa.num_epochs):
+    for iteration in range(resume_itr, pa.num_epochs):
 
         # np.random.shuffle(ex_indices)
 
@@ -309,10 +325,17 @@ def main():
 
             plot_lr_curve(pa.output_filename,max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews, rate_lr_curve, ref_idle_rate, resume)
             tf_learner.save_data(pa.output_filename + '_' + str(resume))
+            file = open(pa.output_filename + "_" + str(resume) + "_etc.pkl", 'wb')
+            pickle.dump(iteration, file)
+            pickle.dump(max_rew_lr_curve, file)
+            pickle.dump(mean_rew_lr_curve, file)
+            pickle.dump(rate_lr_curve, file)
+            file.close()
 
         all_eprews = []
         all_eplens = []
         all_loss = []
+        all_rate = []
 
 
 if __name__ == '__main__':
