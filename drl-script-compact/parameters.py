@@ -8,19 +8,19 @@ class Parameters:
         # self.output_filename = 'data/tmp'
         self.output_filename = 'D:\Code\data\mec-tmd\data_temp'
         self.num_epochs = 1001         # number of training epochs
-        self.simu_len = 250             # length of the busy cycle that repeats itself
+        self.simu_len = 600             # length of the busy cycle that repeats itself
         self.num_ex = 4                # number of sequences
 
-        self.output_freq = 10          # interval for output and store parameters
+        self.output_freq = 25          # interval for output and store parameters
 
-        self.num_seq_per_batch = 10    # number of sequences to compute baseline
-        self.episode_max_length = 2000  # enforcing an artificial terminal
+        self.num_seq_per_batch = 5    # number of sequences to compute baseline
+        self.episode_max_length = 5000  # enforcing an artificial terminal
 
         self.num_res = 2               # number of resources in the system
         self.num_nw = 200                # maximum allowed number of work in the queue
 
         self.time_horizon = 200         # number of time steps in the graph
-        self.max_job_len = 100          # maximum duration of new jobs
+        self.max_job_len = 120          # maximum duration of new jobs
         self.res_slot = 8             # maximum number of available resource slots
 
         self.ambr_len = 10             # LTE ambr prediction size
@@ -29,7 +29,7 @@ class Parameters:
 
         self.job_num_cap = 200          # maximum number of distinct colors in current work graph
 
-        self.new_job_rate = 2.2        # lambda in new job arrival Poisson Process
+        self.new_job_rate = 2.0        # lambda in new job arrival Poisson Process
 
         self.discount = 1           # discount factor
 

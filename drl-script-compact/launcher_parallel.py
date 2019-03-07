@@ -125,7 +125,7 @@ def concatenate_all_ob_across_examples(all_ob, pa):
 
     return all_ob_contact
 
-def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews, rate_lr_curve, ref_idle_rate, resume):
+def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews, rate_lr_curve, ref_idle_rate, resume, pa_change):
     num_colors = 10
     cm = plt.get_cmap('gist_rainbow')
 
@@ -140,6 +140,9 @@ def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_d
     ax.plot(mean_rew_lr_curve, linewidth=2, label='DRL mean')
     ax.plot(max_rew_lr_curve, linewidth=2, label='DRL max')
 
+    for change in pa_change:
+        ax.axvline(x = change[0],linewidth = 2, label = 'Arriving rate from '+ str(change[1]) + ' to ' + str(change[2]))
+
     plt.legend(loc=4)
     plt.xlabel("Iteration", fontsize=20)
     plt.ylabel("Discounted Total Reward", fontsize=20)
@@ -151,6 +154,9 @@ def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_d
         ax.plot(np.tile(np.average(ref_idle_rate[k]), len(mean_rew_lr_curve)), linewidth=2, label=k)
 
     ax.plot(rate_lr_curve, linewidth=2, label='DRL-TO')
+
+    for change in pa_change:
+        ax.axvline(x = change[0],linewidth = 2, label = 'Arriving rate from '+ str(change[1]) + ' to ' + str(change[2]))
 
     plt.legend(loc=4)
     plt.xlabel("Iteration", fontsize=20)
@@ -240,7 +246,21 @@ def main():
         max_rew_lr_curve = pickle.load(file)
         mean_rew_lr_curve = pickle.load(file)
         rate_lr_curve = pickle.load(file)
+        ref_new_job_rate = pickle.load(file)
+        pa_change = pickle.load(file)
         file.close()
+
+        if ref_new_job_rate != pa.new_job_rate:
+            print("Identified arriving rate change from " + str(ref_new_job_rate) + " to " + str(pa.new_job_rate))
+            print("Generating new job sequence")
+            nw_len_seqs = job_distribution.generate_sequence_work(pa)
+            nw_ambr_seqs = job_distribution.generate_sequence_ue_ambr(pa)
+            file = open(pa.output_filename + "_" + str(resume) + ".pkl", 'wb')
+            pickle.dump(nw_len_seqs, file)
+            pickle.dump(nw_ambr_seqs, file)
+            file.close()
+            pa_change.append([resume_itr - 1, ref_new_job_rate, pa.new_job_rate])
+            
 
         tf_learner.load_data(pa.output_filename + '_' + str(resume))
 
@@ -259,6 +279,7 @@ def main():
         max_rew_lr_curve = []
         mean_rew_lr_curve = []
         rate_lr_curve = []
+        pa_change = []
 
         tf_learner.save_data(pa.output_filename + '_' + str(resume))
 
@@ -323,13 +344,15 @@ def main():
 
         if iteration % pa.output_freq == 0:
 
-            plot_lr_curve(pa.output_filename,max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews, rate_lr_curve, ref_idle_rate, resume)
+            plot_lr_curve(pa.output_filename,max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews, rate_lr_curve, ref_idle_rate, resume, pa_change)
             tf_learner.save_data(pa.output_filename + '_' + str(resume))
             file = open(pa.output_filename + "_" + str(resume) + "_etc.pkl", 'wb')
             pickle.dump(iteration, file)
             pickle.dump(max_rew_lr_curve, file)
             pickle.dump(mean_rew_lr_curve, file)
             pickle.dump(rate_lr_curve, file)
+            pickle.dump(pa.new_job_rate, file)
+            pickle.dump(pa_change, file)
             file.close()
 
         all_eprews = []
