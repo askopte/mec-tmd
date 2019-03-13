@@ -65,7 +65,7 @@ def get_traj(agent, env, episode_max_length):
         obs.append(ob)
         acts.append(act)
 
-        ob,rew,done,info = env.step(act,repeat = True)
+        ob,rew,done,info,avg_qos = env.step(act,repeat = True)
 
         rews.append(rew)
         infos.append(info)
@@ -81,11 +81,12 @@ def get_traj(agent, env, episode_max_length):
 
     for info in infos:
         worked_info[info[0]-1] = info[1]
-    
+
     return {'reward': np.array(rews),
             'ob': np.array(obs),
             'action': np.array(acts),
-            'info': worked_info
+            'info': worked_info,
+            'qos':avg_qos
             }
     
 def concatenate_all_ob(trajs, pa):
@@ -125,13 +126,13 @@ def concatenate_all_ob_across_examples(all_ob, pa):
 
     return all_ob_contact
 
-def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews, rate_lr_curve, ref_idle_rate, resume, pa_change):
-    num_colors = 10
+def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews, rate_lr_curve, ref_idle_rate, qos_lr_curve, ref_qos, resume, pa_change):
+    num_colors = 20
     cm = plt.get_cmap('gist_rainbow')
 
-    fig = plt.figure(figsize=(12, 12))
+    fig = plt.figure(figsize=(18, 12))
 
-    ax = fig.add_subplot(211)
+    ax = fig.add_subplot(221)
     ax.set_color_cycle([cm(1. * i / num_colors) for i in range(num_colors)])
 
     for k in ref_discount_rews:
@@ -147,7 +148,7 @@ def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_d
     plt.xlabel("Iteration", fontsize=20)
     plt.ylabel("Discounted Total Reward", fontsize=20)
 
-    ax = fig.add_subplot(212)
+    ax = fig.add_subplot(222)
     ax.set_color_cycle([cm(1. * i / num_colors) for i in range(num_colors)])
 
     for k in ref_idle_rate:
@@ -161,6 +162,21 @@ def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_d
     plt.legend(loc=4)
     plt.xlabel("Iteration", fontsize=20)
     plt.ylabel("Average idle Rate", fontsize=20)
+
+    ax = fig.add_subplot(223)
+    ax.set_color_cycle([cm(1. * i / num_colors) for i in range(num_colors)])
+
+    for k in ref_qos:
+        ax.plot(np.tile(np.average(ref_qos[k]), len(mean_rew_lr_curve)), linewidth=2, label=k)
+
+    ax.plot(qos_lr_curve, linewidth=2, label='DRL-TO')
+
+    for change in pa_change:
+        ax.axvline(x = change[0],linewidth = 2, label = 'Arriving rate from '+ str(change[1]) + ' to ' + str(change[2]))
+
+    plt.legend(loc=4)
+    plt.xlabel("Iteration", fontsize=20)
+    plt.ylabel("Average QoS", fontsize=20)
 
     plt.savefig(output_file_prefix + '_' + str(resume) + "_lr_curve" + ".pdf")
 
@@ -188,12 +204,13 @@ def get_traj_worker(tf_learner, env, pa):
     all_eplens = np.array([len(traj["reward"]) for traj in trajs])
 
     all_rate = np.array([np.average(traj["info"]) for traj in trajs])
+    all_qos = np.array([traj["qos"] for traj in trajs])
 
-    return all_ob, all_action, all_adv, all_eprews, all_eplens, all_rate
+    return all_ob, all_action, all_adv, all_eprews, all_eplens, all_rate, all_qos
 
-def mt_worker(tf_learner, env, pa, all_loss, all_eprews, all_eplens, all_rate, ex):
+def mt_worker(tf_learner, env, pa, all_loss, all_eprews, all_eplens, all_rate, all_qos, ex):
 
-    all_ob, all_action, all_adv, eprews, eplens , rate= get_traj_worker(tf_learner, env, pa)
+    all_ob, all_action, all_adv, eprews, eplens , rate, qos= get_traj_worker(tf_learner, env, pa)
 
     tf_lock.acquire()
     try:
@@ -205,6 +222,7 @@ def mt_worker(tf_learner, env, pa, all_loss, all_eprews, all_eplens, all_rate, e
     all_eprews.append(eprews)
     all_eplens.append(eplens)
     all_rate.append(np.average(rate))
+    all_qos.append(np.average(qos))
 
     print ("-----------------")
     print ("NumExp \t %i" % ex)
@@ -214,6 +232,7 @@ def mt_worker(tf_learner, env, pa, all_loss, all_eprews, all_eplens, all_rate, e
     print ("MeanRew: \t %s +- %s" % (np.mean(eprews), np.std(eprews)))
     print ("MeanLen: \t %s +- %s" % (np.mean(eplens), np.std(eplens)))
     print ("IdleRate: \t %s +- %s" % (np.mean(rate), np.std(rate)))
+    print ("AverageService: \t %s +- %s" % (np.mean(qos), np.std(qos)))
     print ("-----------------")
 
 def main():
@@ -246,6 +265,7 @@ def main():
         max_rew_lr_curve = pickle.load(file)
         mean_rew_lr_curve = pickle.load(file)
         rate_lr_curve = pickle.load(file)
+        qos_lr_curve = pickle.load(file)
         ref_new_job_rate = pickle.load(file)
         pa_change = pickle.load(file)
         file.close()
@@ -279,6 +299,7 @@ def main():
         max_rew_lr_curve = []
         mean_rew_lr_curve = []
         rate_lr_curve = []
+        qos_lr_curve = []
         pa_change = []
 
         tf_learner.save_data(pa.output_filename + '_' + str(resume))
@@ -295,7 +316,7 @@ def main():
     print("Preparing for reference data...")
     # --------------------------------------
 
-    ref_discount_rews , ref_idle_rate = slow_down_cdf.launch(pa, pg_resume=None, render=False, end='all_done')
+    ref_discount_rews , ref_idle_rate , ref_qos= slow_down_cdf.launch(pa, pg_resume=None, render=False, end='all_done')
 
     # --------------------------------------
     print("Start training...")
@@ -310,6 +331,7 @@ def main():
     all_eprews = []
     all_eplens = []
     all_rate = []
+    all_qos = []
     all_loss = []
 
     for iteration in range(resume_itr, pa.num_epochs):
@@ -319,7 +341,7 @@ def main():
         for ex in range(pa.num_ex):
             
             ex_idx = ex_indices[ex]
-            thread = threading.Thread(target = mt_worker, args= (tf_learner, envs[ex_idx], pa, all_loss, all_eprews, all_eplens, all_rate, ex_idx), name= 'Worker-'+str(ex_indices[ex]))
+            thread = threading.Thread(target = mt_worker, args= (tf_learner, envs[ex_idx], pa, all_loss, all_eprews, all_eplens, all_rate, all_qos, ex_idx), name= 'Worker-'+str(ex_indices[ex]))
             ts.append(thread)
             ts[ex].start()
         
@@ -341,16 +363,18 @@ def main():
         max_rew_lr_curve.append(np.average([np.max(rew) for rew in all_eprews]))
         mean_rew_lr_curve.append(np.mean(all_eprews))
         rate_lr_curve.append(np.mean(all_rate))
+        qos_lr_curve.append(np.mean(all_qos))
 
         if iteration % pa.output_freq == 0:
 
-            plot_lr_curve(pa.output_filename,max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews, rate_lr_curve, ref_idle_rate, resume, pa_change)
+            plot_lr_curve(pa.output_filename,max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews, rate_lr_curve, ref_idle_rate, qos_lr_curve, ref_qos, resume, pa_change)
             tf_learner.save_data(pa.output_filename + '_' + str(resume))
             file = open(pa.output_filename + "_" + str(resume) + "_etc.pkl", 'wb')
             pickle.dump(iteration, file)
             pickle.dump(max_rew_lr_curve, file)
             pickle.dump(mean_rew_lr_curve, file)
             pickle.dump(rate_lr_curve, file)
+            pickle.dump(qos_lr_curve, file)
             pickle.dump(pa.new_job_rate, file)
             pickle.dump(pa_change, file)
             file.close()
@@ -359,6 +383,7 @@ def main():
         all_eplens = []
         all_loss = []
         all_rate = []
+        all_qos = []
 
 
 if __name__ == '__main__':

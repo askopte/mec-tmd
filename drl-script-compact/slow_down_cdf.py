@@ -53,7 +53,7 @@ def get_traj(test_type, pa, env, episode_max_length, pg_resume=None, render=Fals
         elif test_type == 'Random':
             a = etc.get_random_action(env.job_slot)
 
-        ob, rew, done, info = env.step(a, repeat=True)
+        ob, rew, done, info , avg_qos= env.step(a, repeat=True)
 
         infos.append(info)
         rews.append(rew)
@@ -72,7 +72,7 @@ def get_traj(test_type, pa, env, episode_max_length, pg_resume=None, render=Fals
     for info in infos:
         worked_info[info[0]-1] = info[1]
 
-    return np.array(rews), worked_info
+    return np.array(rews), worked_info, avg_qos
 
 def launch(pa, pg_resume = None, render = False, end = "no_new_job"):
 
@@ -85,10 +85,12 @@ def launch(pa, pg_resume = None, render = False, end = "no_new_job"):
 
     all_discount_rews = {}
     all_idle_rate = {}
+    all_qos = {}
 
     for test_type in test_types:
         all_discount_rews[test_type] = []
         all_idle_rate[test_type] = []
+        all_qos[test_type] = []
     
     for seq_idx in range(pa.num_ex):
         print('\n\n')
@@ -96,22 +98,25 @@ def launch(pa, pg_resume = None, render = False, end = "no_new_job"):
 
         for test_type in test_types:
 
-            rews, info = get_traj(test_type, pa, env, pa.episode_max_length, pg_resume)
+            rews, info, avg_qos= get_traj(test_type, pa, env, pa.episode_max_length, pg_resume)
 
             rate = np.average(info)
 
             print ("---------- " + test_type + " -----------")
 
             print ("total discount reward : \t %s" % (discount(rews, pa.discount)[0]))
-            print ("average idle rate : \t %s" % (rate))
+            print ("average idle rate :     \t %s" % (rate))
+            print ("average service level : \t %s" % (avg_qos))
 
             all_discount_rews[test_type].append(
                 discount(rews, pa.discount)[0]
             )
             
             all_idle_rate[test_type].append(rate)
+            all_qos[test_type].append(avg_qos)
+            
 
         env.seq_no = (env.seq_no + 1) % env.pa.num_ex
     
-    return all_discount_rews, all_idle_rate
+    return all_discount_rews, all_idle_rate, all_qos
 

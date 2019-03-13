@@ -11,7 +11,7 @@ class Parameters:
         self.simu_len = 600             # length of the busy cycle that repeats itself
         self.num_ex = 4                # number of sequences
 
-        self.output_freq = 25          # interval for output and store parameters
+        self.output_freq = 20          # interval for output and store parameters
 
         self.num_seq_per_batch = 5    # number of sequences to compute baseline
         self.episode_max_length = 5000  # enforcing an artificial terminal
