@@ -65,7 +65,7 @@ def get_traj(agent, env, episode_max_length):
         obs.append(ob)
         acts.append(act)
 
-        ob,rew,done,info,avg_qos = env.step(act,repeat = True)
+        ob,rew,done,info,info2 = env.step(act,repeat = True)
 
         rews.append(rew)
         infos.append(info)
@@ -86,7 +86,7 @@ def get_traj(agent, env, episode_max_length):
             'ob': np.array(obs),
             'action': np.array(acts),
             'info': worked_info,
-            'qos':avg_qos
+            'info2':info2
             }
     
 def concatenate_all_ob(trajs, pa):
@@ -126,7 +126,7 @@ def concatenate_all_ob_across_examples(all_ob, pa):
 
     return all_ob_contact
 
-def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews, rate_lr_curve, ref_idle_rate, qos_lr_curve, ref_qos, resume, pa_change):
+def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews, rate_lr_curve, ref_idle_rate, qos_lr_curve, ref_qos, latency_lr_curve, ref_latency, resume, pa_change, ref_ambr):
     num_colors = 20
     cm = plt.get_cmap('gist_rainbow')
 
@@ -168,6 +168,8 @@ def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_d
 
     for k in ref_qos:
         ax.plot(np.tile(np.average(ref_qos[k]), len(mean_rew_lr_curve)), linewidth=2, label=k)
+    
+    ax.plot(np.tile(ref_ambr, len(mean_rew_lr_curve)), linewidth=2, label='Average UE-AMBR')
 
     ax.plot(qos_lr_curve, linewidth=2, label='DRL-TO')
 
@@ -177,6 +179,21 @@ def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_d
     plt.legend(loc=4)
     plt.xlabel("Iteration", fontsize=20)
     plt.ylabel("Average QoS", fontsize=20)
+
+    ax = fig.add_subplot(224)
+    ax.set_color_cycle([cm(1. * i / num_colors) for i in range(num_colors)])
+
+    for k in ref_latency:
+        ax.plot(np.tile(np.average(ref_latency[k]), len(mean_rew_lr_curve)), linewidth=2, label=k)
+
+    ax.plot(latency_lr_curve, linewidth=2, label='DRL-TO')
+
+    for change in pa_change:
+        ax.axvline(x = change[0],linewidth = 2, label = 'Arriving rate from '+ str(change[1]) + ' to ' + str(change[2]))
+
+    plt.legend(loc=4)
+    plt.xlabel("Iteration", fontsize=20)
+    plt.ylabel("Average Latency", fontsize=20)
 
     plt.savefig(output_file_prefix + '_' + str(resume) + "_lr_curve" + ".pdf")
 
@@ -204,13 +221,16 @@ def get_traj_worker(tf_learner, env, pa):
     all_eplens = np.array([len(traj["reward"]) for traj in trajs])
 
     all_rate = np.array([np.average(traj["info"]) for traj in trajs])
-    all_qos = np.array([traj["qos"] for traj in trajs])
+    all_info2 = np.array([traj["info2"] for traj in trajs])
 
-    return all_ob, all_action, all_adv, all_eprews, all_eplens, all_rate, all_qos
+    all_qos = all_info2[:,0]
+    all_latency = all_info2[:,1]
 
-def mt_worker(tf_learner, env, pa, all_loss, all_eprews, all_eplens, all_rate, all_qos, ex):
+    return all_ob, all_action, all_adv, all_eprews, all_eplens, all_rate, all_qos, all_latency
 
-    all_ob, all_action, all_adv, eprews, eplens , rate, qos= get_traj_worker(tf_learner, env, pa)
+def mt_worker(tf_learner, env, pa, all_loss, all_eprews, all_eplens, all_rate, all_qos, all_latency, ex):
+
+    all_ob, all_action, all_adv, eprews, eplens , rate, qos, latency = get_traj_worker(tf_learner, env, pa)
 
     tf_lock.acquire()
     try:
@@ -223,6 +243,7 @@ def mt_worker(tf_learner, env, pa, all_loss, all_eprews, all_eplens, all_rate, a
     all_eplens.append(eplens)
     all_rate.append(np.average(rate))
     all_qos.append(np.average(qos))
+    all_latency.append(np.average(latency))
 
     print ("-----------------")
     print ("NumExp \t %i" % ex)
@@ -233,6 +254,7 @@ def mt_worker(tf_learner, env, pa, all_loss, all_eprews, all_eplens, all_rate, a
     print ("MeanLen: \t %s +- %s" % (np.mean(eplens), np.std(eplens)))
     print ("IdleRate: \t %s +- %s" % (np.mean(rate), np.std(rate)))
     print ("AverageService: \t %s +- %s" % (np.mean(qos), np.std(qos)))
+    print ("AverageLatency: \t %s +- %s" % (np.mean(latency), np.std(latency)))
     print ("-----------------")
 
 def main():
@@ -266,6 +288,7 @@ def main():
         mean_rew_lr_curve = pickle.load(file)
         rate_lr_curve = pickle.load(file)
         qos_lr_curve = pickle.load(file)
+        latency_lr_curve = pickle.load(file)
         ref_new_job_rate = pickle.load(file)
         pa_change = pickle.load(file)
         file.close()
@@ -300,6 +323,7 @@ def main():
         mean_rew_lr_curve = []
         rate_lr_curve = []
         qos_lr_curve = []
+        latency_lr_curve = []
         pa_change = []
 
         tf_learner.save_data(pa.output_filename + '_' + str(resume))
@@ -316,7 +340,8 @@ def main():
     print("Preparing for reference data...")
     # --------------------------------------
 
-    ref_discount_rews , ref_idle_rate , ref_qos= slow_down_cdf.launch(pa, pg_resume=None, render=False, end='all_done')
+    ref_discount_rews , ref_idle_rate , ref_qos, ref_latency = slow_down_cdf.launch(pa, pg_resume=None, render=False, end='all_done')
+    ref_ambr = np.average(nw_ambr_seqs)
 
     # --------------------------------------
     print("Start training...")
@@ -332,6 +357,7 @@ def main():
     all_eplens = []
     all_rate = []
     all_qos = []
+    all_latency = []
     all_loss = []
 
     for iteration in range(resume_itr, pa.num_epochs):
@@ -341,7 +367,7 @@ def main():
         for ex in range(pa.num_ex):
             
             ex_idx = ex_indices[ex]
-            thread = threading.Thread(target = mt_worker, args= (tf_learner, envs[ex_idx], pa, all_loss, all_eprews, all_eplens, all_rate, all_qos, ex_idx), name= 'Worker-'+str(ex_indices[ex]))
+            thread = threading.Thread(target = mt_worker, args= (tf_learner, envs[ex_idx], pa, all_loss, all_eprews, all_eplens, all_rate, all_qos, all_latency, ex_idx), name= 'Worker-'+str(ex_indices[ex]))
             ts.append(thread)
             ts[ex].start()
         
@@ -364,10 +390,11 @@ def main():
         mean_rew_lr_curve.append(np.mean(all_eprews))
         rate_lr_curve.append(np.mean(all_rate))
         qos_lr_curve.append(np.mean(all_qos))
+        latency_lr_curve.append(np.mean(all_latency))
 
         if iteration % pa.output_freq == 0:
 
-            plot_lr_curve(pa.output_filename,max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews, rate_lr_curve, ref_idle_rate, qos_lr_curve, ref_qos, resume, pa_change)
+            plot_lr_curve(pa.output_filename,max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews, rate_lr_curve, ref_idle_rate, qos_lr_curve, ref_qos, latency_lr_curve, ref_latency, resume, pa_change, ref_ambr)
             tf_learner.save_data(pa.output_filename + '_' + str(resume))
             file = open(pa.output_filename + "_" + str(resume) + "_etc.pkl", 'wb')
             pickle.dump(iteration, file)
@@ -375,6 +402,7 @@ def main():
             pickle.dump(mean_rew_lr_curve, file)
             pickle.dump(rate_lr_curve, file)
             pickle.dump(qos_lr_curve, file)
+            pickle.dump(latency_lr_curve, file)
             pickle.dump(pa.new_job_rate, file)
             pickle.dump(pa_change, file)
             file.close()
@@ -384,6 +412,7 @@ def main():
         all_loss = []
         all_rate = []
         all_qos = []
+        all_latency = []
 
 
 if __name__ == '__main__':

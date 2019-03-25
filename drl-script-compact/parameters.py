@@ -11,7 +11,7 @@ class Parameters:
         self.simu_len = 600             # length of the busy cycle that repeats itself
         self.num_ex = 4                # number of sequences
 
-        self.output_freq = 20          # interval for output and store parameters
+        self.output_freq = 25         # interval for output and store parameters
 
         self.num_seq_per_batch = 5    # number of sequences to compute baseline
         self.episode_max_length = 5000  # enforcing an artificial terminal
@@ -25,11 +25,11 @@ class Parameters:
 
         self.ambr_len = 10             # LTE ambr prediction size
 
-        self.max_track_since_new = 10  # track how many time steps since last new jobs
+        self.max_track_since_new = 25  # track how many time steps since last new jobs
 
         self.job_num_cap = 200          # maximum number of distinct colors in current work graph
 
-        self.new_job_rate = 2.0        # lambda in new job arrival Poisson Process
+        self.new_job_rate = 1.6        # lambda in new job arrival Poisson Process
 
         self.discount = 1           # discount factor
 

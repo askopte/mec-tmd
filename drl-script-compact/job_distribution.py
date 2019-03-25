@@ -55,15 +55,21 @@ def generate_sequence_ue_ambr(pa):
     simu_len = pa.episode_max_length
 
     nw_ambr_seq = np.zeros([num_ex, simu_len], dtype = int)
-    nw_ambr_seq[:,0:9] = 2 
+    nw_ambr_seq[:,0:10] = 2 
     for i in range(num_ex):
         for j in range(int(simu_len / 10) - 1):
             ran = np.random.ranf()
             if ran < 0.25:
                 if nw_ambr_seq[i, 10*j + 9] <= 2:
-                    nw_ambr_seq[i,10*j + 10:10*j + 19] =  nw_ambr_seq[i, 10*j-1] + 1
-            if ran > 0.75:
+                    nw_ambr_seq[i,10*j + 10:10*j + 20] =  nw_ambr_seq[i, 10*j + 9] + 1
+                else:
+                    nw_ambr_seq[i,10*j + 10:10*j + 20] =  nw_ambr_seq[i, 10*j + 9]
+            elif ran > 0.75:
                 if nw_ambr_seq[i, 10*j + 9] >= 1:
-                    nw_ambr_seq[i,10*j + 10:10*j + 19] =  nw_ambr_seq[i, 10*j-1] - 1
+                    nw_ambr_seq[i,10*j + 10:10*j + 20] =  nw_ambr_seq[i, 10*j + 9] - 1
+                else:
+                    nw_ambr_seq[i,10*j + 10:10*j + 20] =  nw_ambr_seq[i, 10*j + 9]
+            else:
+                nw_ambr_seq[i,10*j + 10:10*j + 20] =  nw_ambr_seq[i, 10*j + 9] 
         
     return nw_ambr_seq

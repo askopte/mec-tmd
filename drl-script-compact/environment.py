@@ -242,22 +242,30 @@ class Env:
         info.append(self.machine.avbl_slot[0,0] / 2**self.pa.res_slot)
 
         avg_qos = 0
+        avg_latency = 0
+        info2 = [avg_qos, avg_latency]
 
         if done:
             self.seq_idx = 0
 
             job_num = 0
+
             for job in self.job_record.record:
                 avg_qos += self.job_record.record[job].res
+                avg_latency += self.job_record.record[job].start_time - self.job_record.record[job].enter_time
                 job_num += 1
+
             avg_qos = avg_qos / job_num
+            avg_latency = avg_latency / job_num
+
+            info2 = [avg_qos, avg_latency]
 
             if not repeat:
                 self.seq_no = (self.seq_no + 1) % self.pa.num_ex
 
             self.reset()
 
-        return ob, reward, done, info, avg_qos
+        return ob, reward, done, info, info2
 
 
     def reset(self):
