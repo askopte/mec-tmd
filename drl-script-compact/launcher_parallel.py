@@ -127,13 +127,13 @@ def concatenate_all_ob_across_examples(all_ob, pa):
     return all_ob_contact
 
 def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_discount_rews, rate_lr_curve, ref_idle_rate, qos_lr_curve, ref_qos, latency_lr_curve, ref_latency, resume, pa_change, ref_ambr):
-    num_colors = 20
+
     cm = plt.get_cmap('gist_rainbow')
 
     fig = plt.figure(figsize=(18, 12))
 
     ax = fig.add_subplot(221)
-    ax.set_color_cycle([cm(1. * i / num_colors) for i in range(num_colors)])
+    ax.set_prop_cycle(color=['r', 'g', 'b', 'y', 'c', 'm', 'y', 'k'])
 
     for k in ref_discount_rews:
         ax.plot(np.tile(np.average(ref_discount_rews[k]), len(mean_rew_lr_curve)), linewidth=2, label=k)
@@ -149,7 +149,7 @@ def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_d
     plt.ylabel("Discounted Total Reward", fontsize=20)
 
     ax = fig.add_subplot(222)
-    ax.set_color_cycle([cm(1. * i / num_colors) for i in range(num_colors)])
+    ax.set_prop_cycle(color=['r', 'g', 'b', 'y', 'c', 'm', 'y', 'k'])
 
     for k in ref_idle_rate:
         ax.plot(np.tile(np.average(ref_idle_rate[k]), len(mean_rew_lr_curve)), linewidth=2, label=k)
@@ -164,7 +164,7 @@ def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_d
     plt.ylabel("Average idle Rate", fontsize=20)
 
     ax = fig.add_subplot(223)
-    ax.set_color_cycle([cm(1. * i / num_colors) for i in range(num_colors)])
+    ax.set_prop_cycle(color=['r', 'g', 'b', 'y', 'c', 'm', 'y', 'k'])
 
     for k in ref_qos:
         ax.plot(np.tile(np.average(ref_qos[k]), len(mean_rew_lr_curve)), linewidth=2, label=k)
@@ -181,7 +181,7 @@ def plot_lr_curve(output_file_prefix, max_rew_lr_curve, mean_rew_lr_curve, ref_d
     plt.ylabel("Average QoS", fontsize=20)
 
     ax = fig.add_subplot(224)
-    ax.set_color_cycle([cm(1. * i / num_colors) for i in range(num_colors)])
+    ax.set_prop_cycle(color=['r', 'g', 'b', 'y', 'c', 'm', 'y', 'k'])
 
     for k in ref_latency:
         ax.plot(np.tile(np.average(ref_latency[k]), len(mean_rew_lr_curve)), linewidth=2, label=k)
@@ -271,6 +271,10 @@ def main():
     envs = []
 
     tf_learner = tf_network.TFLearner(pa, pa.network_input_height, pa.network_input_width, 33)
+
+    # --------------------------------------
+    print("Finding Savedata")
+    # --------------------------------------
 
     if resume is not None:
         print("Find resume data, load from slot "+str(resume))

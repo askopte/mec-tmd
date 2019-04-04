@@ -37,8 +37,8 @@ class Parameters:
         self.dist = job_distribution.Dist(self.max_job_len)
 
         self.qos_res_list = [1, 3, 5, 8]
-        self.qos_rew_list = [-20, -5, -2, -1]
-        self.qos_rew_delta = [-2, -2, -3, -3]
+        self.qos_rew_list = [-64, -16, -5, -2]
+        self.qos_rew_delta = [-6, -6, -8, -8]
         self.mec_overall_latency = 5
         self.lte_latency = 3
 
@@ -55,9 +55,9 @@ class Parameters:
             self.nw_width * 2 + self.job_width * 2 + \
             1  # for extra info, 1) time since last new job 2) LTE network infomation
 
-        self.delay_penalty = -10       # penalty for delaying things in the current work screen
-        self.hold_penalty = -3        # penalty for holding things in the new work screen
-        self.dismiss_penalty = -40     # penalty for missing a job because the queue is full
+        self.delay_penalty = -15       # penalty for delaying things in the current work screen
+        self.hold_penalty = -2        # penalty for holding things in the new work screen
+        self.dismiss_penalty = -64     # penalty for missing a job because the queue is full
 
         self.num_frames = 1           # number of frames to combine and process
         self.lr_rate = 0.001          # learning rate
