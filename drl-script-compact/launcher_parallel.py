@@ -50,6 +50,7 @@ def get_traj(agent, env, episode_max_length):
     obs = []
     acts = []
     rews = []
+    rewls = []
     infos = []
 
     ob = env.observe()
@@ -65,9 +66,10 @@ def get_traj(agent, env, episode_max_length):
         obs.append(ob)
         acts.append(act)
 
-        ob,rew,done,info,info2 = env.step(act,repeat = True)
+        ob,rew,rew_l,done,info,info2 = env.step(act,repeat = True)
 
         rews.append(rew)
+        rewls.append(rew_l)
         infos.append(info)
         
         if done:break
@@ -86,7 +88,8 @@ def get_traj(agent, env, episode_max_length):
             'ob': np.array(obs),
             'action': np.array(acts),
             'info': worked_info,
-            'info2':info2
+            'info2':info2,
+            'reward_l':np.array(rewls)
             }
     
 def concatenate_all_ob(trajs, pa):
@@ -219,6 +222,10 @@ def get_traj_worker(tf_learner, env, pa):
 
     all_eprews = np.array([discount(traj["reward"], pa.discount)[0] for traj in trajs])
     all_eplens = np.array([len(traj["reward"]) for traj in trajs])
+    
+    all_eprewls = np.array([discount(traj["reward_l"], pa.discount)[0] for traj in trajs])
+    # print ("MeanRew: \t %s +- %s" % (np.mean(all_eprews), np.std(all_eprews)))
+    # print ("MeanLatencyRew: \t %s +- %s" % (np.mean(all_eprewls), np.std(all_eprewls)))
 
     all_rate = np.array([np.average(traj["info"]) for traj in trajs])
     all_info2 = np.array([traj["info2"] for traj in trajs])

@@ -53,7 +53,7 @@ def get_traj(test_type, pa, env, episode_max_length, pg_resume=None, render=Fals
         elif test_type == 'Random':
             a = etc.get_random_action(env.job_slot)
 
-        ob, rew, done, info , info2= env.step(a, repeat=True)
+        ob, rew, rew_l, done, info , info2= env.step(a, repeat=True)
 
         infos.append(info)
         rews.append(rew)

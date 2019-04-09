@@ -129,22 +129,24 @@ class Env:
             if j.res > self.nw_ambr_seqs[self.seq_no, self.curr_time]:
                 for i in range(self.nw_ambr_seqs[self.seq_no, self.curr_time], j.res):
                     reward += self.pa.qos_rew_delta[i]
+        
+        reward_l = 0
 
         for j in self.machine.pending_job:
-            reward += self.pa.hold_penalty 
+            reward_l += self.pa.hold_penalty 
 
         for j in self.job_slot.slot:
             if j is not None:
                 if self.curr_time - j.enter_time <= 8:
-                    reward -= 2
+                    reward_l -= 2 * 10
                 elif self.curr_time - j.enter_time > 20:
-                    reward -= 64
+                    reward_l -= 64 * 10
                 else:
-                    reward -= 2**int((self.curr_time - j.enter_time - 8)/2)
+                    reward_l -= 2**int((self.curr_time - j.enter_time - 8)/2) * 10
         
-        # reward += self.machine.avbl_slot[0,1] - (2**self.machine.res_slot)
+        reward = reward + reward_l
         
-        return reward
+        return reward, reward_l
 
     def step(self, a, repeat=False):
         
@@ -153,6 +155,7 @@ class Env:
         done = False
         dismiss_rew = 0
         reward = 0
+        reward_l = 0
         info = []
         a2 = a % 4
 
@@ -224,8 +227,9 @@ class Env:
                             if exceed:
                                 dismiss_rew += self.pa.dismiss_penalty * new_job.len
                 
-            reward = self.get_reward()
-            reward += dismiss_rew
+            reward , reward_l= self.get_reward()
+            reward += dismiss_rew / 2
+            reward_l += dismiss_rew / 2
         
         elif status is 'Allocate':
             self.job_record.record[self.job_slot.slot[a1].id] = self.job_slot.slot[a1]
@@ -265,7 +269,7 @@ class Env:
 
             self.reset()
 
-        return ob, reward, done, info, info2
+        return ob, reward, reward_l, done, info, info2
 
 
     def reset(self):
