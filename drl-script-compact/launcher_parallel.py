@@ -224,8 +224,8 @@ def get_traj_worker(tf_learner, env, pa):
     all_eplens = np.array([len(traj["reward"]) for traj in trajs])
     
     all_eprewls = np.array([discount(traj["reward_l"], pa.discount)[0] for traj in trajs])
-    # print ("MeanRew: \t %s +- %s" % (np.mean(all_eprews), np.std(all_eprews)))
-    # print ("MeanLatencyRew: \t %s +- %s" % (np.mean(all_eprewls), np.std(all_eprewls)))
+    #print ("MeanRew: \t %s +- %s" % (np.mean(all_eprews), np.std(all_eprews)))
+    #print ("MeanLatencyRew: \t %s +- %s" % (np.mean(all_eprewls), np.std(all_eprewls)))
 
     all_rate = np.array([np.average(traj["info"]) for traj in trajs])
     all_info2 = np.array([traj["info2"] for traj in trajs])
@@ -362,6 +362,12 @@ def main():
 
     ex_indices = range(pa.num_ex)
 
+    working_ts = 4
+
+    # --------------------------------------
+    print("Working threads amount = " + str(working_ts))
+    # --------------------------------------
+
     ts = []
 
     all_eprews = []
@@ -375,16 +381,26 @@ def main():
 
         # np.random.shuffle(ex_indices)
 
-        for ex in range(pa.num_ex):
-            
-            ex_idx = ex_indices[ex]
-            thread = threading.Thread(target = mt_worker, args= (tf_learner, envs[ex_idx], pa, all_loss, all_eprews, all_eplens, all_rate, all_qos, all_latency, ex_idx), name= 'Worker-'+str(ex_indices[ex]))
-            ts.append(thread)
-            ts[ex].start()
-        
-        for ex in range(pa.num_ex):
+        a_cycle = int(np.ceil(pa.num_ex / working_ts))
 
-            ts[ex].join()
+        for cycle in range(a_cycle):
+
+            for ex in range(cycle * working_ts, (cycle + 1) * working_ts):
+                
+                if ex >= pa.num_ex:
+                    break
+                
+                ex_idx = ex_indices[ex]
+                thread = threading.Thread(target = mt_worker, args= (tf_learner, envs[ex_idx], pa, all_loss, all_eprews, all_eplens, all_rate, all_qos, all_latency, ex_idx), name= 'Worker-'+str(ex_indices[ex]))
+                ts.append(thread)
+                ts[ex].start()
+            
+            for ex in range(cycle * working_ts, (cycle + 1) * working_ts):
+
+                if ex >= pa.num_ex:
+                    break
+                
+                ts[ex].join()
         
         ts = []
         timer_end = time.time()

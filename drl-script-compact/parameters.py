@@ -22,6 +22,7 @@ class Parameters:
         self.time_horizon = 200         # number of time steps in the graph
         self.max_job_len = 120          # maximum duration of new jobs
         self.res_slot = 8             # maximum number of available resource slots
+        self.limited_res = 4          # restrict number of available limited resource slots
 
         self.ambr_len = 10             # LTE ambr prediction size
 
@@ -55,9 +56,9 @@ class Parameters:
             self.nw_width * 2 + self.job_width * 2 + \
             1  # for extra info, 1) time since last new job 2) LTE network infomation
 
-        self.delay_penalty = -10       # penalty for delaying things in the current work screen
-        self.hold_penalty = -2        # penalty for holding things in the new work screen
-        self.dismiss_penalty = -40     # penalty for missing a job because the queue is full
+        self.delay_penalty = -60       # penalty for delaying things in the current work screen
+        self.hold_penalty = -30        # penalty for holding things in the new work screen
+        self.dismiss_penalty = -60     # penalty for missing a job because the queue is full
 
         self.num_frames = 1           # number of frames to combine and process
         self.lr_rate = 0.001          # learning rate

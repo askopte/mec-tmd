@@ -130,20 +130,27 @@ class Env:
                 for i in range(self.nw_ambr_seqs[self.seq_no, self.curr_time], j.res):
                     reward += self.pa.qos_rew_delta[i]
         
+        if self.machine.avbl_slot[0,1] < 2**self.machine.res_slot - 2**self.machine.limited_res:
+            reward -= (2**self.machine.res_slot - 2**self.machine.limited_res - self.machine.avbl_slot[0,1]) * 20
+        
         reward_l = 0
 
         for j in self.machine.pending_job:
             reward_l += self.pa.hold_penalty 
-
+        '''
         for j in self.job_slot.slot:
             if j is not None:
                 if self.curr_time - j.enter_time <= 8:
-                    reward_l -= 2 * 10
+                    reward_l -= 2 * 20
                 elif self.curr_time - j.enter_time > 20:
-                    reward_l -= 64 * 10
+                    reward_l -= 64 * 20
                 else:
-                    reward_l -= 2**int((self.curr_time - j.enter_time - 8)/2) * 10
-        
+                    reward_l -= 2**int((self.curr_time - j.enter_time - 8)/2) * 20
+        '''
+        for j in self.job_slot.slot:
+            if j is not None:
+                reward_l += self.pa.delay_penalty
+
         reward = reward + reward_l
         
         return reward, reward_l
@@ -307,6 +314,7 @@ class Machine:
         self.num_res = pa.num_res
         self.time_horizon = pa.time_horizon
         self.res_slot = pa.res_slot
+        self.limited_res = pa.limited_res
 
         self.avbl_slot = np.ones((self.time_horizon, self.num_res)) * (2**self.res_slot)
 
